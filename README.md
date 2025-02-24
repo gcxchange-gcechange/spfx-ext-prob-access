@@ -2,9 +2,11 @@
 
 ## Summary
 
-Short summary on functionality and used technologies.
-
-[picture of the solution in action, if possible]
+This extensions is responsible for the following:
+- Responsible for checking if the site in question is pro B
+- If yes, responsible for checking if the privacy setting is set to public for that particular site
+- If yes, responsible for checking if the user logging in is a member or owner of this site
+- If no, responsible for redirecting the user to the home page
 
 ## Used SharePoint Framework Version
 
@@ -19,7 +21,7 @@ Short summary on functionality and used technologies.
 
 ## Prerequisites
 
-> Any special pre-requisites?
+No prerequisites but webAPIRequirements as follows, 
 
 ## Solution
 
