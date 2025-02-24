@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Elements xmlns="http://schemas.microsoft.com/sharepoint/">
+    <CustomAction
+        Title="ProbAccess"
+        Location="ClientSideExtension.ApplicationCustomizer"
+        ClientSideComponentId="e7c209ed-1902-4303-a066-bdf3ac7075ac"
+        ClientSideComponentProperties="{&quot;testMessage&quot;:&quot;Test message&quot;}">
+    </CustomAction>
+</Elements>

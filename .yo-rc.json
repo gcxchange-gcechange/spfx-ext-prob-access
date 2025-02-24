@@ -1,0 +1,22 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "16.15.1",
+    "sdksVersions": {
+      "@microsoft/microsoft-graph-client": "3.0.2",
+      "@microsoft/teams-js": "2.12.0"
+    },
+    "version": "1.19.0",
+    "libraryName": "spfx-ext-prob-access",
+    "libraryId": "720cafc4-50cc-4314-9007-38fc1308f419",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "spfx-ext-prob-access",
+    "solutionShortDescription": "spfx-ext-prob-access description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "extension",
+    "extensionType": "ApplicationCustomizer"
+  }
+}

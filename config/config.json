@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "prob-access-application-customizer": {
+      "components": [
+        {
+          "entrypoint": "./lib/extensions/probAccess/ProbAccessApplicationCustomizer.js",
+          "manifest": "./src/extensions/probAccess/ProbAccessApplicationCustomizer.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "ProbAccessApplicationCustomizerStrings": "lib/extensions/probAccess/loc/{locale}.js"
+  }
+}
