@@ -4,7 +4,7 @@
   "https": true,
   "serveConfigurations": {
     "default": {
-      "pageUrl": "https://{tenantDomain}/SitePages/myPage.aspx",
+      "pageUrl": "https://devgcx.sharepoint.com/",
       "customActions": {
         "e7c209ed-1902-4303-a066-bdf3ac7075ac": {
           "location": "ClientSideExtension.ApplicationCustomizer",
@@ -15,7 +15,7 @@
       }
     },
     "probAccess": {
-      "pageUrl": "https://{tenantDomain}/SitePages/myPage.aspx",
+      "pageUrl": "https://devgcx.sharepoint.com/",
       "customActions": {
         "e7c209ed-1902-4303-a066-bdf3ac7075ac": {
           "location": "ClientSideExtension.ApplicationCustomizer",
