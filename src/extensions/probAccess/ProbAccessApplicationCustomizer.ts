@@ -7,9 +7,9 @@ import "@pnp/sp/site-groups/web";
 sp.setup({
   sp: {
     headers: {
-      Accept: "application/json;odata=verbose"
-    }
-  }
+      Accept: "application/json;odata=verbose",
+    },
+  },
 });
 
 interface SiteGroup {
@@ -55,13 +55,18 @@ async function getSitePrivacySetting(): Promise<string> {
     console.log("Fetching site properties...");
     const siteProperties = await sp.web.allProperties.get();
     console.log("Site Properties:", siteProperties); // Log all site properties
-    return siteProperties.Privacy;
+    if (siteProperties.Privacy) {
+      return siteProperties.Privacy;
+    } else {
+      console.log("Privacy property not found");
+      return "";
+    }
   } catch (error) {
     console.error("Error getting Site Privacy Setting:", error);
-    throw error; 
+    console.error("Full Error:", error); // Log the full error object
+    throw error;
   }
 }
-
 
 // function to check if a user is a member or owner of the site
 async function isUserMemberOrOwner(userId: number): Promise<boolean> {
@@ -74,17 +79,18 @@ async function isUserMemberOrOwner(userId: number): Promise<boolean> {
     console.log("Site Owners Group:", siteOwnersGroup);
 
     const siteMembersGroup = await getSiteMembersGroup();
-     console.log("Site Members Group:", siteMembersGroup);
+    console.log("Site Members Group:", siteMembersGroup);
 
     // responsible for checking if the user is in the owners or members group
-    const isOwner = userGroups.some(group => group.Id === siteOwnersGroup.Id);
-    const isMember = userGroups.some(group => group.Id === siteMembersGroup.Id);
+    const isOwner = userGroups.some((group) => group.Id === siteOwnersGroup.Id);
+    const isMember = userGroups.some((group) => group.Id === siteMembersGroup.Id);
     const result = isOwner || isMember;
 
-    console.log(`User is owner: ${isOwner}, User is member: ${isMember}, User is member or owner: ${result}`);
+    console.log(
+      `User is owner: ${isOwner}, User is member: ${isMember}, User is member or owner: ${result}`
+    );
 
     return result;
-
   } catch (error) {
     console.error("Error checking user:", error);
     return false;
@@ -103,11 +109,10 @@ async function getSiteOwnersGroup(): Promise<SiteGroup> {
   }
 }
 
-
 // function to get site members group
 async function getSiteMembersGroup(): Promise<SiteGroup> {
   try {
-     console.log("Getting Site Members Group...");
+    console.log("Getting Site Members Group...");
     const membersGroup = await sp.web.siteGroups.getByName("Site Members").get();
     return membersGroup;
   } catch (error) {
@@ -118,19 +123,25 @@ async function getSiteMembersGroup(): Promise<SiteGroup> {
 
 // function to check if the community is Protected B
 async function isCommunityProtectedB(): Promise<boolean> {
-    try {
-        console.log("Checking if community is Protected B...");
-        const siteProperties = await sp.web.allProperties.get();
-        console.log("Site Description:", siteProperties.Description);
-        const isProtected = siteProperties.Description.includes("PROTECTED B - PROTÉGÉ B");
-        console.log("Is Protected B:", isProtected);
-        return isProtected;
-    } catch (error) {
-        console.error("Error checking if community is Protected B:", error);
-        return false;
+  try {
+    console.log("Checking if community is Protected B...");
+    const siteProperties = await sp.web.allProperties.get();
+    console.log("Site Description:", siteProperties.Description);
+    if (siteProperties.Description) {
+      const isProtected = siteProperties.Description.includes(
+        "PROTECTED B - PROTÉGÉ B"
+      );
+      console.log("Is Protected B:", isProtected);
+      return isProtected;
+    } else {
+      console.log("Site description is empty");
+      return false;
     }
+  } catch (error) {
+    console.error("Error checking if community is Protected B:", error);
+    return false;
+  }
 }
-
 
 // responsible for calling the function to check community access
 checkCommunityAccess()
