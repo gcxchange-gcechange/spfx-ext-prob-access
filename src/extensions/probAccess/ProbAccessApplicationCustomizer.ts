@@ -3,7 +3,7 @@ import "@pnp/sp/webs";
 import "@pnp/sp/site-users/web";
 import "@pnp/sp/site-groups/web";
 
-// initializes PNP JS library with required headers
+// will initialize the PNP JS library with required headers
 sp.setup({
   sp: {
     headers: {
@@ -22,10 +22,10 @@ async function checkCommunityAccess(): Promise<void> {
     const isProtectedB = await isCommunityProtectedB();
 
     if (isProtectedB) {
-      // to check if the privacy setting is set to public
+      // responsible for checking if the privacy setting is set to public
       const sitePrivacySetting = await getSitePrivacySetting();
       if (sitePrivacySetting === "Public") {
-        // to check if the user is a member or owner of the site
+        // responsible for checking if the user is a member or owner of the site
         const currentUser = await sp.web.currentUser();
         const isMemberOrOwner = await isUserMemberOrOwner(currentUser.Id);
 
@@ -53,7 +53,7 @@ async function isUserMemberOrOwner(userId: number): Promise<boolean> {
     const siteOwnersGroup = await getSiteOwnersGroup();
     const siteMembersGroup = await getSiteMembersGroup();
 
-    // will check if the user is in the owners or members group
+    // responsible for checking if the user is in the owners or members group
     return userGroups.some(group => group.Id === siteOwnersGroup.Id) || userGroups.some(group => group.Id === siteMembersGroup.Id);
   } catch (error) {
     console.error("Error checking user:", error);
@@ -75,11 +75,11 @@ async function getSiteMembersGroup(): Promise<SiteGroup> {
 
 // function to check if the community is Protected B
 async function isCommunityProtectedB(): Promise<boolean> {
-  return true; 
+  const siteProperties = await sp.web.allProperties.get();
+    return siteProperties.Description.includes("PROTECTED B - PROTÉGÉ B");
 }
 
-// will call the function to check community access
+// responsible for calling the function to check community access
 checkCommunityAccess()
   .then(() => console.log("Community access checked successfully"))
   .catch((error) => console.error("Error checking community access:", error));
-
