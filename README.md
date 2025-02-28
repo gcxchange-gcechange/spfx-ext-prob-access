@@ -47,8 +47,12 @@ No prerequisites but webAPIRequirements as follows,
 - Clone this repository
 - Ensure that you are at the solution folder
 - in the command-line run:
+  - **gulp clean**
   - **npm install**
   - **gulp serve**
+- to build and package the solution for the app catalog
+  - **gulp build --ship**
+  - **gulp package-solution --ship**
 
 > Include any additional steps as needed.
 
