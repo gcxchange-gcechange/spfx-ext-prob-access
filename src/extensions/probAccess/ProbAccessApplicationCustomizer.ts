@@ -3,7 +3,7 @@ import "@pnp/sp/webs";
 import "@pnp/sp/site-users/web";
 import "@pnp/sp/site-groups/web";
 
-// will initialize the PNP JS library with the required headers
+// initializes PNP JS library with required headers
 sp.setup({
   sp: {
     headers: {
@@ -12,16 +12,20 @@ sp.setup({
   }
 });
 
-// function to check community access based on privacy settings and user requirements trying to access the community
+interface SiteGroup {
+  Id: number;
+}
+
+// function to check community access based on privacy settings and user requirements
 async function checkCommunityAccess(): Promise<void> {
   try {
-    const isProtectedB = await isCommunityProtectedB(); // will implement the function to check if the community is Protected B
+    const isProtectedB = await isCommunityProtectedB();
 
     if (isProtectedB) {
-      // will check if the privacy setting is set to public
+      // to check if the privacy setting is set to public
       const sitePrivacySetting = await getSitePrivacySetting();
       if (sitePrivacySetting === "Public") {
-        // will check if the user is a member or owner of the site
+        // to check if the user is a member or owner of the site
         const currentUser = await sp.web.currentUser();
         const isMemberOrOwner = await isUserMemberOrOwner(currentUser.Id);
 
@@ -38,7 +42,7 @@ async function checkCommunityAccess(): Promise<void> {
 
 // function to get the site privacy setting
 async function getSitePrivacySetting(): Promise<string> {
-  const siteProperties = await sp.web.allProperties.get(); // siteInfo is the place to look for siteProperties 
+  const siteProperties = await sp.web.allProperties.get();
   return siteProperties.Privacy;
 }
 
@@ -58,13 +62,13 @@ async function isUserMemberOrOwner(userId: number): Promise<boolean> {
 }
 
 // function to get site owners group
-async function getSiteOwnersGroup(): Promise<any> {
+async function getSiteOwnersGroup(): Promise<SiteGroup> {
   const ownersGroup = await sp.web.siteGroups.getByName("Site Owners").get();
   return ownersGroup;
 }
 
 // function to get site members group
-async function getSiteMembersGroup(): Promise<any> {
+async function getSiteMembersGroup(): Promise<SiteGroup> {
   const membersGroup = await sp.web.siteGroups.getByName("Site Members").get();
   return membersGroup;
 }
@@ -74,5 +78,8 @@ async function isCommunityProtectedB(): Promise<boolean> {
   return true; 
 }
 
-// checks the community access
-void checkCommunityAccess(); 
+// will call the function to check community access
+checkCommunityAccess()
+  .then(() => console.log("Community access checked successfully"))
+  .catch((error) => console.error("Error checking community access:", error));
+
