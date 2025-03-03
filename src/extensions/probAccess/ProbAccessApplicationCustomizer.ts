@@ -101,7 +101,7 @@ async function isUserMemberOrOwner(userId: number): Promise<boolean> {
 // function to get site owners group
 async function getSiteOwnersGroup(): Promise<SiteGroup> {
   try {
-    console.log("Getting Site Owners Group...");
+    console.log("Getting Site Owners Group.");
     const ownersGroup = await sp.web.siteGroups.getByName("Site Owners").get();
     return ownersGroup;
   } catch (error) {
