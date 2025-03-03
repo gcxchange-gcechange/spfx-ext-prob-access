@@ -16,21 +16,21 @@ interface SiteGroup {
   Id: number;
 }
 
-// function to check community access based on privacy settings and user requirements
+// function to check community access based on privacy settings and user requirements 
 async function checkCommunityAccess(): Promise<void> {
   try {
-    console.log("Starting community access check...");
+    console.log("Starting community access check.");
 
     const isProtectedB = await isCommunityProtectedB();
     console.log("isProtectedB:", isProtectedB);
 
     if (isProtectedB) {
-      // responsible for checking if the privacy setting is set to public
+      // is responsible for checking if the privacy setting is set to public
       const sitePrivacySetting = await getSitePrivacySetting();
       console.log("sitePrivacySetting:", sitePrivacySetting);
 
       if (sitePrivacySetting === "Public") {
-        // responsible for checking if the user is a member or owner of the site
+        // is responsible for checking if the user is a member or owner of the site
         const currentUser = await sp.web.currentUser();
         console.log("currentUser:", currentUser);
         const isMemberOrOwner = await isUserMemberOrOwner(currentUser.Id);
@@ -38,8 +38,8 @@ async function checkCommunityAccess(): Promise<void> {
 
         if (!isMemberOrOwner) {
           // will redirect the user to the home page if they are not a member or owner
-          console.log("Redirecting user...");
-          window.location.href = "https://devgcx.sharepoint.com/";
+          console.log("Redirecting user.");
+          window.location.href = sp.web.toUrl(); // redirect to the current site's homepage
         }
       }
     }
@@ -52,9 +52,9 @@ async function checkCommunityAccess(): Promise<void> {
 // function to get the site privacy setting
 async function getSitePrivacySetting(): Promise<string> {
   try {
-    console.log("Fetching site properties...");
+    console.log("Fetching site properties.");
     const siteProperties = await sp.web.allProperties.get();
-    console.log("Site Properties:", siteProperties); // Log all site properties
+    console.log("Site Properties:", siteProperties);
     if (siteProperties.Privacy) {
       return siteProperties.Privacy;
     } else {
@@ -63,7 +63,8 @@ async function getSitePrivacySetting(): Promise<string> {
     }
   } catch (error) {
     console.error("Error getting Site Privacy Setting:", error);
-    console.error("Full Error:", error); // Log the full error object
+    console.error("Full Error:", error);
+    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/AllProperties`); // log the URL
     throw error;
   }
 }
@@ -71,7 +72,7 @@ async function getSitePrivacySetting(): Promise<string> {
 // function to check if a user is a member or owner of the site
 async function isUserMemberOrOwner(userId: number): Promise<boolean> {
   try {
-    console.log("Checking user membership...");
+    console.log("Checking user membership.");
     const userGroups = await sp.web.currentUser.groups();
     console.log("User Groups:", userGroups);
 
@@ -81,7 +82,7 @@ async function isUserMemberOrOwner(userId: number): Promise<boolean> {
     const siteMembersGroup = await getSiteMembersGroup();
     console.log("Site Members Group:", siteMembersGroup);
 
-    // responsible for checking if the user is in the owners or members group
+    // it is responsible for checking if the user is in the owners or members group
     const isOwner = userGroups.some((group) => group.Id === siteOwnersGroup.Id);
     const isMember = userGroups.some((group) => group.Id === siteMembersGroup.Id);
     const result = isOwner || isMember;
@@ -105,26 +106,28 @@ async function getSiteOwnersGroup(): Promise<SiteGroup> {
     return ownersGroup;
   } catch (error) {
     console.error("Error getting Site Owners Group:", error);
-    throw error; // re-throw the error
+    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/sitegroups/getbyname('Site Owners')`); // log the URL
+    throw error; // re-throw the error if it comes up
   }
 }
 
 // function to get site members group
 async function getSiteMembersGroup(): Promise<SiteGroup> {
   try {
-    console.log("Getting Site Members Group...");
+    console.log("Getting Site Members Group.");
     const membersGroup = await sp.web.siteGroups.getByName("Site Members").get();
     return membersGroup;
   } catch (error) {
     console.error("Error getting Site Members Group:", error);
-    throw error; // Re-throw the error
+    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/sitegroups/getbyname('Site Members')`); // Log the URL
+    throw error; // re-throw the error if it comes up
   }
 }
 
 // function to check if the community is Protected B
 async function isCommunityProtectedB(): Promise<boolean> {
   try {
-    console.log("Checking if community is Protected B...");
+    console.log("Checking if community is Protected B.");
     const siteProperties = await sp.web.allProperties.get();
     console.log("Site Description:", siteProperties.Description);
     if (siteProperties.Description) {
@@ -139,11 +142,12 @@ async function isCommunityProtectedB(): Promise<boolean> {
     }
   } catch (error) {
     console.error("Error checking if community is Protected B:", error);
+    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/AllProperties`); // log the URL
     return false;
   }
 }
 
-// responsible for calling the function to check community access
+// is responsible for calling the function to check community access
 checkCommunityAccess()
   .then(() => console.log("Community access checked successfully"))
   .catch((error) => console.error("Error checking community access:", error));
