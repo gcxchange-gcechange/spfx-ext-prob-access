@@ -1,153 +1,127 @@
-import { sp } from "@pnp/sp";
-import "@pnp/sp/webs";
-import "@pnp/sp/site-users/web";
-import "@pnp/sp/site-groups/web";
+import { override } from '@microsoft/decorators';
+import { Log } from '@microsoft/sp-core-library';
+import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
+import { SPHttpClient, SPHttpClientResponse, ISPHttpClientOptions } from '@microsoft/sp-http';
+import { Environment, EnvironmentType } from '@microsoft/sp-core-library';
 
-// will initialize the PNP JS library with required headers
-sp.setup({
-  sp: {
-    headers: {
-      Accept: "application/json;odata=verbose",
-    },
-  },
-});
+import * as strings from 'ProbAccessApplicationCustomizerStrings';
 
-interface SiteGroup {
-  Id: number;
+const LOG_SOURCE: string = 'ProtectedBCommunityExtensionApplicationCustomizer';
+
+export interface IProtectedBCommunityExtensionApplicationCustomizerProperties {
+  testMessage: string;
 }
 
-// function to check community access based on privacy settings and user requirements 
-async function checkCommunityAccess(): Promise<void> {
-  try {
-    console.log("Starting community access check.");
+export default class ProtectedBCommunityExtensionApplicationCustomizer
+  extends BaseApplicationCustomizer<IProtectedBCommunityExtensionApplicationCustomizerProperties> {
 
-    const isProtectedB = await isCommunityProtectedB();
-    console.log("isProtectedB:", isProtectedB);
+  @override
+  public async onInit(): Promise<void> {
+    Log.info(LOG_SOURCE, `Initialized ${strings.Title}`);
 
-    if (isProtectedB) {
-      // is responsible for checking if the privacy setting is set to public
-      const sitePrivacySetting = await getSitePrivacySetting();
-      console.log("sitePrivacySetting:", sitePrivacySetting);
+    if (Environment.type === EnvironmentType.SharePoint || Environment.type === EnvironmentType.ClassicSharePoint) {
+      try {
+        await this.checkProtectedBCommunityAccess();
+      } catch (error) {
+        console.error('Error during Protected B community access check:', error);
+      }
+    } else {
+      console.log("This extension only works in SharePoint environments.");
+    }
 
-      if (sitePrivacySetting === "Public") {
-        // is responsible for checking if the user is a member or owner of the site
-        const currentUser = await sp.web.currentUser();
-        console.log("currentUser:", currentUser);
-        const isMemberOrOwner = await isUserMemberOrOwner(currentUser.Id);
-        console.log("isMemberOrOwner:", isMemberOrOwner);
+    return Promise.resolve();
+  }
 
-        if (!isMemberOrOwner) {
-          // will redirect the user to the home page if they are not a member or owner
-          console.log("Redirecting user.");
-          window.location.href = sp.web.toUrl(); // redirect to the current site's homepage
+  private async checkProtectedBCommunityAccess(): Promise<void> {
+    try {
+      const isProtectedB: boolean = await this.isSiteProtectedB();
+
+      if (isProtectedB) {
+        const isPublic: boolean = await this.isSitePublic();
+
+        if (isPublic) {
+          const isMemberOrOwner: boolean = await this.isUserMemberOrOwner();
+
+          if (!isMemberOrOwner) {
+            this.redirectUserToHomePage();
+          }
         }
       }
+    } catch (error) {
+      console.error('Error during Protected B and privacy check:', error);
     }
-    console.log("Community access check completed.");
-  } catch (error) {
-    console.error("Error checking community access:", error);
   }
-}
 
-// function to get the site privacy setting
-async function getSitePrivacySetting(): Promise<string> {
-  try {
-    console.log("Fetching site properties.");
-    const siteProperties = await sp.web.allProperties.get();
-    console.log("Site Properties:", siteProperties);
-    if (siteProperties.Privacy) {
-      return siteProperties.Privacy;
-    } else {
-      console.log("Privacy property not found");
-      return "";
-    }
-  } catch (error) {
-    console.error("Error getting Site Privacy Setting:", error);
-    console.error("Full Error:", error);
-    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/AllProperties`); // log the URL
-    throw error;
-  }
-}
+  private async isSiteProtectedB(): Promise<boolean> {
+    const spOpts: ISPHttpClientOptions = {
+      headers: {
+        'Accept': 'application/json;odata=nometadata'
+      }
+    };
 
-// function to check if a user is a member or owner of the site
-async function isUserMemberOrOwner(userId: number): Promise<boolean> {
-  try {
-    console.log("Checking user membership.");
-    const userGroups = await sp.web.currentUser.groups();
-    console.log("User Groups:", userGroups);
-
-    const siteOwnersGroup = await getSiteOwnersGroup();
-    console.log("Site Owners Group:", siteOwnersGroup);
-
-    const siteMembersGroup = await getSiteMembersGroup();
-    console.log("Site Members Group:", siteMembersGroup);
-
-    // it is responsible for checking if the user is in the owners or members group
-    const isOwner = userGroups.some((group) => group.Id === siteOwnersGroup.Id);
-    const isMember = userGroups.some((group) => group.Id === siteMembersGroup.Id);
-    const result = isOwner || isMember;
-
-    console.log(
-      `User is owner: ${isOwner}, User is member: ${isMember}, User is member or owner: ${result}`
+    const response: SPHttpClientResponse = await this.context.spHttpClient.get(
+      `${this.context.pageContext.web.absoluteUrl}/_api/web/AllProperties?$select=ProtectedB`,
+      SPHttpClient.configurations.v1,
+      spOpts
     );
 
-    return result;
-  } catch (error) {
-    console.error("Error checking user:", error);
-    return false;
-  }
-}
-
-// function to get site owners group
-async function getSiteOwnersGroup(): Promise<SiteGroup> {
-  try {
-    console.log("Getting Site Owners Group.");
-    const ownersGroup = await sp.web.siteGroups.getByName("Site Owners").get();
-    return ownersGroup;
-  } catch (error) {
-    console.error("Error getting Site Owners Group:", error);
-    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/sitegroups/getbyname('Site Owners')`); // log the URL
-    throw error; // re-throw the error if it comes up
-  }
-}
-
-// function to get site members group
-async function getSiteMembersGroup(): Promise<SiteGroup> {
-  try {
-    console.log("Getting Site Members Group.");
-    const membersGroup = await sp.web.siteGroups.getByName("Site Members").get();
-    return membersGroup;
-  } catch (error) {
-    console.error("Error getting Site Members Group:", error);
-    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/sitegroups/getbyname('Site Members')`); // Log the URL
-    throw error; // re-throw the error if it comes up
-  }
-}
-
-// function to check if the community is Protected B
-async function isCommunityProtectedB(): Promise<boolean> {
-  try {
-    console.log("Checking if community is Protected B.");
-    const siteProperties = await sp.web.allProperties.get();
-    console.log("Site Description:", siteProperties.Description);
-    if (siteProperties.Description) {
-      const isProtected = siteProperties.Description.includes(
-        "PROTECTED B - PROTÉGÉ B"
-      );
-      console.log("Is Protected B:", isProtected);
-      return isProtected;
+    if (response.ok) {
+      const properties = await response.json();
+      return properties.ProtectedB === "true"; 
     } else {
-      console.log("Site description is empty");
+      console.error("error getting site properties");
       return false;
     }
-  } catch (error) {
-    console.error("Error checking if community is Protected B:", error);
-    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/AllProperties`); // log the URL
-    return false;
+  }
+
+  private async isSitePublic(): Promise<boolean> {
+    const spOpts: ISPHttpClientOptions = {
+      headers: {
+        'Accept': 'application/json;odata=nometadata'
+      }
+    };
+    const response: SPHttpClientResponse = await this.context.spHttpClient.get(
+        `${this.context.pageContext.web.absoluteUrl}/_api/site/Group`,
+        SPHttpClient.configurations.v1,
+        spOpts
+    );
+
+    if (response.ok) {
+        const groupInfo = await response.json();
+        return groupInfo.IsPublic;
+    } else {
+        console.error("error getting group information");
+        return false;
+    }
+  }
+
+  private async isUserMemberOrOwner(): Promise<boolean> {
+    const spOpts: ISPHttpClientOptions = {
+      headers: {
+        'Accept': 'application/json;odata=nometadata'
+      }
+    };
+    const response: SPHttpClientResponse = await this.context.spHttpClient.get(
+      `${this.context.pageContext.web.absoluteUrl}/_api/web/CurrentUser/Groups`,
+      SPHttpClient.configurations.v1,
+      spOpts
+    );
+
+    if (response.ok) {
+      const groups = await response.json();
+      for (const group of groups.value) {
+        if (group.WebUrl === this.context.pageContext.web.absoluteUrl) {
+          return true;
+        }
+      }
+      return false;
+    } else {
+      console.error("error getting user groups");
+      return false;
+    }
+  }
+
+  private redirectUserToHomePage(): void {
+    window.location.href = this.context.pageContext.web.absoluteUrl;
   }
 }
-
-// is responsible for calling the function to check community access
-checkCommunityAccess()
-  .then(() => console.log("Community access checked successfully"))
-  .catch((error) => console.error("Error checking community access:", error));
