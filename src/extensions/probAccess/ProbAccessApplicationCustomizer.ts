@@ -64,7 +64,6 @@ async function getSitePrivacySetting(): Promise<string> {
   } catch (error) {
     console.error("Error getting Site Privacy Setting:", error);
     console.error("Full Error:", error);
-    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/AllProperties`); // log the URL
     throw error;
   }
 }
@@ -106,7 +105,6 @@ async function getSiteOwnersGroup(): Promise<SiteGroup> {
     return ownersGroup;
   } catch (error) {
     console.error("Error getting Site Owners Group:", error);
-    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/sitegroups/getbyname('Site Owners')`); // log the URL
     throw error; // re-throw the error if it comes up
   }
 }
@@ -119,7 +117,6 @@ async function getSiteMembersGroup(): Promise<SiteGroup> {
     return membersGroup;
   } catch (error) {
     console.error("Error getting Site Members Group:", error);
-    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/sitegroups/getbyname('Site Members')`); // Log the URL
     throw error; // re-throw the error if it comes up
   }
 }
@@ -142,7 +139,6 @@ async function isCommunityProtectedB(): Promise<boolean> {
     }
   } catch (error) {
     console.error("Error checking if community is Protected B:", error);
-    console.error(`Request URL: ${sp.web.toUrl()}/_api/web/AllProperties`); // log the URL
     return false;
   }
 }
