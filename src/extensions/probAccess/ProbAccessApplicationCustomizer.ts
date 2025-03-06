@@ -34,6 +34,13 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       return Promise.resolve();
     }
 
+    // Check if the user has been previously removed from the community
+    if (sessionStorage.getItem('removedFromCommunity') === 'true') {
+      console.log('User has been previously removed from the community, redirecting...');
+      window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+      return Promise.resolve();
+    }
+
     try {
       console.log('Fetching current web...');
       const currentWeb = await sp.web();
@@ -88,7 +95,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
     } 
-    
+
     catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
