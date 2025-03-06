@@ -27,36 +27,64 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
   @override
   public async onInit(): Promise<void> {
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
+    console.log('Initialized ProbAccessApplicationCustomizer');
 
     try {
+      console.log('Fetching current web...');
       const currentWeb = await sp.web();
       const siteUrl = currentWeb.Url;
+      console.log('Site URL:', siteUrl);
       const isProtectedB = siteUrl.includes("/teams/b");
+      console.log('Is Protected B:', isProtectedB);
 
       if (isProtectedB) {
         interface IWebInfoWithPrivacy extends IWebInfo {
           PrivacyComplianceLevel: string;
         }
 
+        console.log('Fetching privacy settings...');
         const privacySetting = await sp.web.select("Title", "PrivacyComplianceLevel").get() as IWebInfoWithPrivacy;
+        console.log('Privacy Setting:', privacySetting);
         const isPublic = privacySetting.PrivacyComplianceLevel === "Public";
+        console.log('Is Public:', isPublic);
 
         if (isPublic) {
+          console.log('Fetching user groups...');
           const userGroups = await sp.web.currentUser.groups.get();
+          console.log('User Groups:', userGroups);
           const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
+          console.log('Is Member or Owner:', isMemberOrOwner);
 
           if (!isMemberOrOwner) {
+            console.log('User is not a member or owner, redirecting...');
+            sessionStorage.setItem('redirected', 'true');
             window.location.href = "https://devgcx.sharepoint.com";
+            return Promise.resolve();
           }
         } else {
+          console.log('Privacy setting is not public, redirecting...');
+          sessionStorage.setItem('redirected', 'true');
           window.location.href = "https://devgcx.sharepoint.com";
+          return Promise.resolve();
         }
       } else {
+        console.log('Site is not Protected B, redirecting...');
+        sessionStorage.setItem('redirected', 'true');
         window.location.href = "https://devgcx.sharepoint.com";
+        return Promise.resolve();
       }
     } catch (error) {
       Log.error(LOG_SOURCE, error);
+      console.error('Error:', error);
+      sessionStorage.setItem('redirected', 'true');
       window.location.href = "https://devgcx.sharepoint.com";
+      return Promise.resolve();
+    }
+
+    // Check if redirection has already occurred
+    if (sessionStorage.getItem('redirected') === 'true') {
+      console.log('Redirection has already occurred, skipping...');
+      return Promise.resolve();
     }
 
     return Promise.resolve();
