@@ -47,13 +47,12 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       return Promise.resolve();
     }
 
-    // Check if the referrer is from the same site and the current URL is not a Protected B site
-    const referrer = document.referrer;
+    // Check if the current URL is a Protected B site
     const currentUrl = window.location.href;
     const isProtectedB = currentUrl.includes("/teams/b"); // pro b sites only
 
-    if (referrer && !referrer.startsWith(window.location.origin) && !isProtectedB) {
-      console.log('Referrer is from a different site and current URL is not a Protected B site, skipping redirection...');
+    if (!isProtectedB) {
+      console.log('Current URL is not a Protected B site, skipping redirection...');
       return Promise.resolve();
     }
 
@@ -62,8 +61,6 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       const currentWeb = await sp.web();
       const siteUrl = currentWeb.Url;
       console.log('Site URL:', siteUrl);
-      
-      
 
       const isProtectedB = siteUrl.includes("/teams/b"); // pro b sites only
       console.log('Is Protected B:', isProtectedB);
