@@ -12,7 +12,7 @@ import "@pnp/sp/site-users/web";
 // Initialize PnPjs
 sp.setup({
   sp: {
-    baseUrl: "https://devgcx.sharepoint.com" // need to update this link in Prod
+    baseUrl: "https://devgcx.sharepoint.com"
   }
 });
 
@@ -27,12 +27,6 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
   public async onInit(): Promise<void> {
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
-
-    // Check if the current URL is the app catalog page
-    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
-      console.log('App catalog page detected, skipping redirection...');
-      return Promise.resolve();
-    }
 
     // Check if redirection has already occurred
     if (sessionStorage.getItem('redirected') === 'true') {
@@ -52,8 +46,14 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       const currentWeb = await sp.web();
       const siteUrl = currentWeb.Url;
       console.log('Site URL:', siteUrl);
+      
+      // Check if the current URL is the app catalog page
+      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
+        console.log('App catalog page detected, skipping redirection...');
+        return Promise.resolve();
+      }
 
-      const isProtectedB = siteUrl.includes("/teams/b"); // pro b sites only
+      const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
       if (isProtectedB) {
@@ -91,6 +91,12 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
           return Promise.resolve();
         }
+      } else {
+        console.log('Site is not Protected B, redirecting...');
+        sessionStorage.setItem('redirected', 'true');
+        sessionStorage.setItem('removedFromCommunity', 'true');
+        window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+        return Promise.resolve();
       }
     } catch (error) {
       Log.error(LOG_SOURCE, error);
