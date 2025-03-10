@@ -34,15 +34,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       return Promise.resolve();
     }
 
-    // Check if the user has been previously removed from the community
-    if (sessionStorage.getItem('removedFromCommunity') === 'true') {
-      console.log('User has been previously removed from the community, redirecting...');
-      window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
-      return Promise.resolve();
-    }
-
     // Check if the current URL is the app catalog page
-    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
+    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
       console.log('App catalog page detected, skipping redirection...');
       return Promise.resolve();
     }
@@ -85,29 +78,33 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
           if (!isMemberOrOwner) {
             console.log('User is not a member or owner, redirecting...');
-            sessionStorage.setItem('redirected', 'true');
             sessionStorage.setItem('removedFromCommunity', 'true');
             window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
             return Promise.resolve();
-          } else {
+          } 
+          
+          else {
             console.log('User is a member or owner, no redirection needed.');
-            sessionStorage.setItem('redirected', 'true');
+            sessionStorage.removeItem('removedFromCommunity');
           }
-        } else {
+        } 
+        
+        else {
           console.log('Privacy setting is not public, redirecting...');
-          sessionStorage.setItem('redirected', 'true');
           sessionStorage.setItem('removedFromCommunity', 'true');
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
           return Promise.resolve();
         }
-      } else {
+      } 
+      
+      else {
         console.log('Site is not Protected B, no redirection needed.');
-        sessionStorage.setItem('redirected', 'true');
       }
-    } catch (error) {
+    } 
+    
+    catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
-      sessionStorage.setItem('redirected', 'true');
       sessionStorage.setItem('removedFromCommunity', 'true');
       window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
       return Promise.resolve();
