@@ -101,11 +101,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           return Promise.resolve();
         }
       } else {
-        console.log('Site is not Protected B, redirecting...');
+        console.log('Site is not Protected B, no redirection needed.');
         sessionStorage.setItem('redirected', 'true');
-        sessionStorage.setItem('removedFromCommunity', 'true');
-        window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
-        return Promise.resolve();
       }
     } catch (error) {
       Log.error(LOG_SOURCE, error);
