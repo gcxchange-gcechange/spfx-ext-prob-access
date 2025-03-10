@@ -28,6 +28,10 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
+    // Clear session storage item for testing
+    sessionStorage.removeItem('redirected');
+    sessionStorage.removeItem('removedFromCommunity');
+
     // Check if redirection has already occurred
     if (sessionStorage.getItem('redirected') === 'true') {
       console.log('Redirection has already occurred, skipping...');
@@ -35,7 +39,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     }
 
     // Check if the current URL is the app catalog page
-    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
+    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
       console.log('App catalog page detected, skipping redirection...');
       return Promise.resolve();
     }
@@ -98,7 +102,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       } 
       
       else {
-        console.log('Site is not Protected B, no redirection needed.');
+        console.log('Site is Protected B, no redirection needed.');
       }
     } 
     
