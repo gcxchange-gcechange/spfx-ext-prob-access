@@ -34,12 +34,6 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       return Promise.resolve();
     }
 
-    // Check if the current URL is a Protected B site
-    // if (!window.location.href.includes('/teams/b')) { // pro b sites only
-    //   console.log('Not a Protected B site, skipping redirection...');
-    //   return Promise.resolve();
-    // }
-
     // Check if redirection has already occurred
     if (sessionStorage.getItem('redirected') === 'true') {
       console.log('Redirection has already occurred, skipping...');
