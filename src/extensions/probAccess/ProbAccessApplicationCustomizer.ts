@@ -45,7 +45,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
         }
 
         console.log('Fetching current web...');
-        const currentWeb = await sp.web();
+        const currentWeb = await sp.web.get();
         const siteUrl = currentWeb.Url;
         console.log('Site URL:', siteUrl);
 
