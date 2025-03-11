@@ -72,18 +72,24 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
             sessionStorage.setItem('removedFromCommunity', 'true');
             window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
             return;
-          } else {
+          } 
+          
+          else {
             console.log('User is a member or owner, granting access.');
             sessionStorage.setItem('redirected', 'true');
           }
-        } else {
+        } 
+        
+        else {
           console.log('Privacy setting is not public, redirecting...');
           sessionStorage.setItem('redirected', 'true');
           sessionStorage.setItem('removedFromCommunity', 'true');
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
           return;
         }
-      } catch (error) {
+      } 
+      
+      catch (error) {
         Log.error(LOG_SOURCE, error);
         console.error('Error:', error);
         sessionStorage.setItem('redirected', 'true');
@@ -104,7 +110,6 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     window.addEventListener('pushstate', checkAccess);
     window.addEventListener('replacestate', checkAccess);
 
-    // Monkey patch history.pushState and history.replaceState to detect URL changes
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
 
