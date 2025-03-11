@@ -28,73 +28,99 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
-    try {
-      const currentUrl = window.location.href;
-      console.log('Current URL:', currentUrl);
+    const checkAccess = async (): Promise<void> => {
+      try {
+        const currentUrl = window.location.href;
+        console.log('Current URL:', currentUrl);
 
-      // Check if the current URL is the app catalog page
-      if (currentUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
-        console.log('App catalog page detected, skipping redirection...');
-        return Promise.resolve();
-      }
+        // Check if the current URL is the app catalog page
+        if (currentUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
+          console.log('App catalog page detected, skipping redirection...');
+          return;
+        }
 
-      // Check if the current URL is a Protected B site
-      if (!currentUrl.includes('/teams/b')) {
-        console.log('Not a Protected B site, skipping further checks...');
-        return Promise.resolve();
-      }
+        // Check if the current URL is a Protected B site
+        if (!currentUrl.includes('/teams/b')) {
+          console.log('Not a Protected B site, skipping further checks...');
+          return;
+        }
 
-      console.log('Fetching current web...');
-      const currentWeb = await sp.web();
-      const siteUrl = currentWeb.Url;
-      console.log('Site URL:', siteUrl);
+        console.log('Fetching current web...');
+        const currentWeb = await sp.web();
+        const siteUrl = currentWeb.Url;
+        console.log('Site URL:', siteUrl);
 
-      interface IWebInfoWithPrivacy extends IWebInfo {
-        PrivacyComplianceLevel: string;
-      }
+        interface IWebInfoWithPrivacy extends IWebInfo {
+          PrivacyComplianceLevel: string;
+        }
 
-      console.log('Fetching privacy settings...');
-      const privacySetting = await sp.web.select("Title", "PrivacyComplianceLevel").get() as IWebInfoWithPrivacy;
-      console.log('Privacy Setting:', privacySetting);
-      const isPublic = privacySetting.PrivacyComplianceLevel === "Public";
-      console.log('Is Public:', isPublic);
+        console.log('Fetching privacy settings...');
+        const privacySetting = await sp.web.select("Title", "PrivacyComplianceLevel").get() as IWebInfoWithPrivacy;
+        console.log('Privacy Setting:', privacySetting);
+        const isPublic = privacySetting.PrivacyComplianceLevel === "Public";
+        console.log('Is Public:', isPublic);
 
-      if (isPublic) {
-        console.log('Fetching user groups...');
-        const userGroups = await sp.web.currentUser.groups.get();
-        console.log('User Groups:', userGroups);
-        const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
-        console.log('Is Member or Owner:', isMemberOrOwner);
+        if (isPublic) {
+          console.log('Fetching user groups...');
+          const userGroups = await sp.web.currentUser.groups.get();
+          console.log('User Groups:', userGroups);
+          const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
+          console.log('Is Member or Owner:', isMemberOrOwner);
 
-        if (!isMemberOrOwner) {
-          console.log('User is not a member or owner, redirecting...');
+          if (!isMemberOrOwner) {
+            console.log('User is not a member or owner, redirecting...');
+            sessionStorage.setItem('redirected', 'true');
+            sessionStorage.setItem('removedFromCommunity', 'true');
+            window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
+            return;
+          } else {
+            console.log('User is a member or owner, granting access.');
+            sessionStorage.setItem('redirected', 'true');
+          }
+        } else {
+          console.log('Privacy setting is not public, redirecting...');
           sessionStorage.setItem('redirected', 'true');
           sessionStorage.setItem('removedFromCommunity', 'true');
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
-          return Promise.resolve();
-        } else {
-          console.log('User is a member or owner, granting access.');
-          sessionStorage.setItem('redirected', 'true');
+          return;
         }
-      } else {
-        console.log('Privacy setting is not public, redirecting...');
+      } catch (error) {
+        Log.error(LOG_SOURCE, error);
+        console.error('Error:', error);
         sessionStorage.setItem('redirected', 'true');
         sessionStorage.setItem('removedFromCommunity', 'true');
         window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
-        return Promise.resolve();
+        return;
       }
-    } catch (error) {
-      Log.error(LOG_SOURCE, error);
-      console.error('Error:', error);
+
+      console.log('User has the necessary access, no redirection needed.');
       sessionStorage.setItem('redirected', 'true');
-      sessionStorage.setItem('removedFromCommunity', 'true');
-      window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
-      return Promise.resolve();
-    }
+    };
 
-    console.log('User has the necessary access, no redirection needed.');
-    sessionStorage.setItem('redirected', 'true');
+    // Initial check when the application customizer is initialized
+    await checkAccess();
 
-    return Promise.resolve();
+    // Listen for URL changes
+    window.addEventListener('popstate', checkAccess);
+    window.addEventListener('pushstate', checkAccess);
+    window.addEventListener('replacestate', checkAccess);
+
+    // Monkey patch history.pushState and history.replaceState to detect URL changes
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (...args) {
+      const result = originalPushState.apply(this, args);
+      window.dispatchEvent(new Event('pushstate'));
+      window.dispatchEvent(new Event('popstate'));
+      return result;
+    };
+
+    history.replaceState = function (...args) {
+      const result = originalReplaceState.apply(this, args);
+      window.dispatchEvent(new Event('replacestate'));
+      window.dispatchEvent(new Event('popstate'));
+      return result;
+    };
   }
 }
