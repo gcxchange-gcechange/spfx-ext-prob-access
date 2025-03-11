@@ -30,6 +30,12 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
     try {
 
+      // Check if the current URL is the app catalog page
+      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this in Prod
+        console.log('App catalog page detected, skipping redirection...');
+        return Promise.resolve();
+      }
+
       // Check if redirection has already occurred
       if (sessionStorage.getItem('redirected') === 'true') {
         console.log('Redirection has already occurred, skipping...');
@@ -42,12 +48,6 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
         window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
         return Promise.resolve();
       }
-      
-      // Check if the current URL is the app catalog page
-      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this in Prod
-        console.log('App catalog page detected, skipping redirection...');
-        return Promise.resolve();
-      }
 
       console.log('Fetching current web...');
       const currentWeb = await sp.web();
@@ -55,7 +55,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       console.log('Site URL:', siteUrl);
 
       const isProtectedB = siteUrl.includes("/teams/b"); // pro b sites only
-      console.log('Is Protected B:', isProtectedB);
+      console.log('Is Protected B:', isProtectedB); 
 
       if (isProtectedB) {
         interface IWebInfoWithPrivacy extends IWebInfo {
@@ -81,25 +81,33 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
             sessionStorage.setItem('removedFromCommunity', 'true');
             window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
             return Promise.resolve();
-          } else {
+          } 
+          
+          else {
             console.log('User is a member or owner, no redirection needed.');
             sessionStorage.setItem('redirected', 'true');
           }
-        } else {
+        } 
+        
+        else {
           console.log('Privacy setting is not public, redirecting...');
           sessionStorage.setItem('redirected', 'true');
           sessionStorage.setItem('removedFromCommunity', 'true');
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
           return Promise.resolve();
         }
-      } else {
+      } 
+      
+      else {
         console.log('Site is not Protected B, redirecting...');
         sessionStorage.setItem('redirected', 'true');
         sessionStorage.setItem('removedFromCommunity', 'true');
         window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
         return Promise.resolve();
       }
-    } catch (error) {
+    } 
+    
+    catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
       sessionStorage.setItem('redirected', 'true');
