@@ -18,8 +18,7 @@ sp.setup({
 
 const LOG_SOURCE: string = 'ProbAccessApplicationCustomizer';
 
-export interface IProbAccessApplicationCustomizerProperties {
-}
+export interface IProbAccessApplicationCustomizerProperties {}
 
 export default class ProbAccessApplicationCustomizer extends BaseApplicationCustomizer<IProbAccessApplicationCustomizerProperties> {
 
@@ -62,7 +61,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
         if (isPublic) {
           console.log('Fetching user groups...');
-          const userGroups = await sp.web.currentUser.groups.get();
+          const userGroups = await sp.web.currentUser.groups();
           console.log('User Groups:', userGroups);
           const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
           console.log('Is Member or Owner:', isMemberOrOwner);
