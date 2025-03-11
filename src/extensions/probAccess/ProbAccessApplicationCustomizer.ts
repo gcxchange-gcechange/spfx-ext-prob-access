@@ -38,6 +38,13 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       return Promise.resolve();
     }
 
+    // Check if the user has been removed from the community
+    if (sessionStorage.getItem('removedFromCommunity') === 'true') {
+      console.log('User has been removed from the community, redirecting...');
+      window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+      return Promise.resolve();
+    }
+
     // Check if the current URL is the app catalog page
     if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
       console.log('App catalog page detected, skipping redirection...');
