@@ -73,7 +73,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
           return Promise.resolve();
         } else {
-          console.log('User is a member or owner, no redirection needed.');
+          console.log('User is a member or owner, granting access.');
           sessionStorage.setItem('redirected', 'true');
         }
       } else {
