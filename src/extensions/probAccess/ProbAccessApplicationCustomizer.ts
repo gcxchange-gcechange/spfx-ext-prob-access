@@ -28,25 +28,13 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
+    // Check if the current URL is the app catalog page
+    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
+      console.log('App catalog page detected, skipping redirection...');
+      return Promise.resolve();
+    }
+
     try {
-      // Check if the current URL is the app catalog page
-      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
-        console.log('App catalog page detected, skipping redirection...');
-        return Promise.resolve();
-      }
-
-      // Check if redirection has already occurred
-      if (sessionStorage.getItem('redirected') === 'true') {
-        console.log('Redirection has already occurred, skipping...');
-        return Promise.resolve();
-      }
-
-      // Check if the user has been previously removed from the community
-      if (sessionStorage.getItem('removedFromCommunity') === 'true') {
-        console.log('User has been previously removed from the community, redirecting...');
-        window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
-        return Promise.resolve();
-      }
 
       console.log('Fetching current web...');
       const currentWeb = await sp.web();
