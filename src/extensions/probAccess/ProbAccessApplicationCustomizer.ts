@@ -28,10 +28,6 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
-    // Clear session storage item for testing
-    sessionStorage.removeItem('redirected');
-    sessionStorage.removeItem('removedFromCommunity');
-
     // Check if redirection has already occurred
     if (sessionStorage.getItem('redirected') === 'true') {
       console.log('Redirection has already occurred, skipping...');
@@ -39,7 +35,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     }
 
     // Check if the user has been removed from the community
-    if (sessionStorage.getItem('removedFromCommunity') === 'true') {
+    if (localStorage.getItem('removedFromCommunity') === 'true') {
       console.log('User has been removed from the community, redirecting...');
       window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
       return Promise.resolve();
@@ -89,20 +85,20 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
           if (!isMemberOrOwner) {
             console.log('User is not a member or owner, redirecting...');
-            sessionStorage.setItem('removedFromCommunity', 'true');
+            localStorage.setItem('removedFromCommunity', 'true');
             window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
             return Promise.resolve();
           } 
           
           else {
             console.log('User is a member or owner, no redirection needed.');
-            sessionStorage.removeItem('removedFromCommunity');
+            localStorage.removeItem('removedFromCommunity');
           }
         } 
         
         else {
           console.log('Privacy setting is not public, redirecting...');
-          sessionStorage.setItem('removedFromCommunity', 'true');
+          localStorage.setItem('removedFromCommunity', 'true');
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
           return Promise.resolve();
         }
@@ -116,7 +112,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
-      sessionStorage.setItem('removedFromCommunity', 'true');
+      localStorage.setItem('removedFromCommunity', 'true');
       window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
       return Promise.resolve();
     }
