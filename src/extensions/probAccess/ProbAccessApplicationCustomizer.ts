@@ -12,7 +12,7 @@ import "@pnp/sp/site-users/web";
 // Initialize PnPjs
 sp.setup({
   sp: {
-    baseUrl: "https://devgcx.sharepoint.com"
+    baseUrl: "https://devgcx.sharepoint.com" // need to update this link in Prod
   }
 });
 
@@ -29,9 +29,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     console.log('Initialized ProbAccessApplicationCustomizer');
 
     try {
-
       // Check if the current URL is the app catalog page
-      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this in Prod
+      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
         console.log('App catalog page detected, skipping redirection...');
         return Promise.resolve();
       }
@@ -55,7 +54,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       console.log('Site URL:', siteUrl);
 
       const isProtectedB = siteUrl.includes("/teams/b"); // pro b sites only
-      console.log('Is Protected B:', isProtectedB); 
+      console.log('Is Protected B:', isProtectedB);
 
       if (isProtectedB) {
         interface IWebInfoWithPrivacy extends IWebInfo {
@@ -96,14 +95,6 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
           return Promise.resolve();
         }
-      } 
-      
-      else {
-        console.log('Site is not Protected B, redirecting...');
-        sessionStorage.setItem('redirected', 'true');
-        sessionStorage.setItem('removedFromCommunity', 'true');
-        window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
-        return Promise.resolve();
       }
     } 
     
