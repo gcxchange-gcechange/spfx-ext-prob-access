@@ -12,13 +12,14 @@ import "@pnp/sp/site-users/web";
 // Initialize PnPjs
 sp.setup({
   sp: {
-    baseUrl: "https://devgcx.sharepoint.com" // need to update this link in Prod
+    baseUrl: "https://devgcx.sharepoint.com"
   }
 });
 
 const LOG_SOURCE: string = 'ProbAccessApplicationCustomizer';
 
 export interface IProbAccessApplicationCustomizerProperties {
+  // Define properties if any
 }
 
 export default class ProbAccessApplicationCustomizer extends BaseApplicationCustomizer<IProbAccessApplicationCustomizerProperties> {
@@ -29,7 +30,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     console.log('Initialized ProbAccessApplicationCustomizer');
 
     // Check if the current URL is the app catalog page
-    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
+    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
       console.log('App catalog page detected, skipping redirection...');
       return Promise.resolve();
     }
@@ -49,7 +50,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     // Check if the user has been previously removed from the community
     if (sessionStorage.getItem('removedFromCommunity') === 'true') {
       console.log('User has been previously removed from the community, redirecting...');
-      window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+      window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
 
@@ -59,7 +60,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       const siteUrl = currentWeb.Url;
       console.log('Site URL:', siteUrl);
 
-      const isProtectedB = siteUrl.includes("/teams/b"); // pro b sites only
+      const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
       if (isProtectedB) {
@@ -84,7 +85,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
             console.log('User is not a member or owner, redirecting...');
             sessionStorage.setItem('redirected', 'true');
             sessionStorage.setItem('removedFromCommunity', 'true');
-            window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+            window.location.href = "https://devgcx.sharepoint.com";
             return Promise.resolve();
           } else {
             console.log('User is a member or owner, no redirection needed.');
@@ -94,7 +95,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           console.log('Privacy setting is not public, redirecting...');
           sessionStorage.setItem('redirected', 'true');
           sessionStorage.setItem('removedFromCommunity', 'true');
-          window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+          window.location.href = "https://devgcx.sharepoint.com";
           return Promise.resolve();
         }
       }
@@ -103,7 +104,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       console.error('Error:', error);
       sessionStorage.setItem('redirected', 'true');
       sessionStorage.setItem('removedFromCommunity', 'true');
-      window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+      window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
 
