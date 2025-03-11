@@ -29,9 +29,18 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     console.log('Initialized ProbAccessApplicationCustomizer');
 
     try {
+      const currentUrl = window.location.href;
+      console.log('Current URL:', currentUrl);
+
       // Check if the current URL is the app catalog page
-      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
+      if (currentUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
         console.log('App catalog page detected, skipping redirection...');
+        return Promise.resolve();
+      }
+
+      // Check if the current URL is a Protected B site
+      if (!currentUrl.includes('/teams/b')) {
+        console.log('Not a Protected B site, skipping further checks...');
         return Promise.resolve();
       }
 
@@ -40,49 +49,39 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       const siteUrl = currentWeb.Url;
       console.log('Site URL:', siteUrl);
 
-      // Check if the site URL includes "/teams/b" for Protected B sites
-      const isProtectedB = siteUrl.includes("/teams/b");
-      console.log('Is Protected B:', isProtectedB);
+      interface IWebInfoWithPrivacy extends IWebInfo {
+        PrivacyComplianceLevel: string;
+      }
 
-      if (isProtectedB) {
-        interface IWebInfoWithPrivacy extends IWebInfo {
-          PrivacyComplianceLevel: string;
-        }
+      console.log('Fetching privacy settings...');
+      const privacySetting = await sp.web.select("Title", "PrivacyComplianceLevel").get() as IWebInfoWithPrivacy;
+      console.log('Privacy Setting:', privacySetting);
+      const isPublic = privacySetting.PrivacyComplianceLevel === "Public";
+      console.log('Is Public:', isPublic);
 
-        console.log('Fetching privacy settings...');
-        const privacySetting = await sp.web.select("Title", "PrivacyComplianceLevel").get() as IWebInfoWithPrivacy;
-        console.log('Privacy Setting:', privacySetting);
+      if (isPublic) {
+        console.log('Fetching user groups...');
+        const userGroups = await sp.web.currentUser.groups.get();
+        console.log('User Groups:', userGroups);
+        const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
+        console.log('Is Member or Owner:', isMemberOrOwner);
 
-        // Check if the site is public
-        const isPublic = privacySetting.PrivacyComplianceLevel === "Public";
-        console.log('Is Public:', isPublic);
-
-        if (isPublic) {
-          console.log('Fetching user groups...');
-          const userGroups = await sp.web.currentUser.groups.get();
-          console.log('User Groups:', userGroups);
-
-          // Check if the user is a member or owner
-          const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
-          console.log('Is Member or Owner:', isMemberOrOwner);
-
-          if (!isMemberOrOwner) {
-            console.log('User is not a member or owner, redirecting...');
-            sessionStorage.setItem('redirected', 'true');
-            sessionStorage.setItem('removedFromCommunity', 'true');
-            window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
-            return Promise.resolve();
-          } else {
-            console.log('User is a member or owner, no redirection needed.');
-            sessionStorage.setItem('redirected', 'true');
-          }
-        } else {
-          console.log('Privacy setting is not public, redirecting...');
+        if (!isMemberOrOwner) {
+          console.log('User is not a member or owner, redirecting...');
           sessionStorage.setItem('redirected', 'true');
           sessionStorage.setItem('removedFromCommunity', 'true');
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
           return Promise.resolve();
+        } else {
+          console.log('User is a member or owner, no redirection needed.');
+          sessionStorage.setItem('redirected', 'true');
         }
+      } else {
+        console.log('Privacy setting is not public, redirecting...');
+        sessionStorage.setItem('redirected', 'true');
+        sessionStorage.setItem('removedFromCommunity', 'true');
+        window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
+        return Promise.resolve();
       }
     } catch (error) {
       Log.error(LOG_SOURCE, error);
