@@ -28,20 +28,20 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
-    // Check if the current URL is the app catalog page
-    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
-      console.log('App catalog page detected, skipping redirection...');
-      return Promise.resolve();
-    }
-
     try {
+      // Check if the current URL is the app catalog page
+      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
+        console.log('App catalog page detected, skipping redirection...');
+        return Promise.resolve();
+      }
 
       console.log('Fetching current web...');
       const currentWeb = await sp.web();
       const siteUrl = currentWeb.Url;
       console.log('Site URL:', siteUrl);
 
-      const isProtectedB = siteUrl.includes("/teams/b"); // pro b sites only
+      // Check if the site URL includes "/teams/b" for Protected B sites
+      const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
       if (isProtectedB) {
@@ -52,6 +52,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
         console.log('Fetching privacy settings...');
         const privacySetting = await sp.web.select("Title", "PrivacyComplianceLevel").get() as IWebInfoWithPrivacy;
         console.log('Privacy Setting:', privacySetting);
+
+        // Check if the site is public
         const isPublic = privacySetting.PrivacyComplianceLevel === "Public";
         console.log('Is Public:', isPublic);
 
@@ -59,6 +61,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           console.log('Fetching user groups...');
           const userGroups = await sp.web.currentUser.groups.get();
           console.log('User Groups:', userGroups);
+
+          // Check if the user is a member or owner
           const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
           console.log('Is Member or Owner:', isMemberOrOwner);
 
@@ -68,15 +72,11 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
             sessionStorage.setItem('removedFromCommunity', 'true');
             window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
             return Promise.resolve();
-          } 
-          
-          else {
+          } else {
             console.log('User is a member or owner, no redirection needed.');
             sessionStorage.setItem('redirected', 'true');
           }
-        } 
-        
-        else {
+        } else {
           console.log('Privacy setting is not public, redirecting...');
           sessionStorage.setItem('redirected', 'true');
           sessionStorage.setItem('removedFromCommunity', 'true');
@@ -84,9 +84,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           return Promise.resolve();
         }
       }
-    } 
-    
-    catch (error) {
+    } catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
       sessionStorage.setItem('redirected', 'true');
