@@ -19,7 +19,6 @@ sp.setup({
 const LOG_SOURCE: string = 'ProbAccessApplicationCustomizer';
 
 export interface IProbAccessApplicationCustomizerProperties {
-  // Define properties if any
 }
 
 export default class ProbAccessApplicationCustomizer extends BaseApplicationCustomizer<IProbAccessApplicationCustomizerProperties> {
@@ -29,28 +28,15 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
-    // Check if the current URL is the app catalog page
-    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
-      console.log('App catalog page detected, skipping redirection...');
-      return Promise.resolve();
-    }
-
-    // Check if the current URL is a Protected B site
-    if (!window.location.href.includes('/teams/b')) {
-      console.log('Not a Protected B site, skipping redirection...');
-      return Promise.resolve();
-    }
-
     // Check if redirection has already occurred
     if (sessionStorage.getItem('redirected') === 'true') {
       console.log('Redirection has already occurred, skipping...');
       return Promise.resolve();
     }
 
-    // Check if the user has been previously removed from the community
-    if (sessionStorage.getItem('removedFromCommunity') === 'true') {
-      console.log('User has been previously removed from the community, redirecting...');
-      window.location.href = "https://devgcx.sharepoint.com";
+    // Check if the current URL is the app catalog page
+    if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this in Prod
+      console.log('App catalog page detected, skipping redirection...');
       return Promise.resolve();
     }
 
@@ -60,7 +46,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       const siteUrl = currentWeb.Url;
       console.log('Site URL:', siteUrl);
 
-      const isProtectedB = siteUrl.includes("/teams/b");
+      const isProtectedB = siteUrl.includes("/teams/b"); // pro b sites only
       console.log('Is Protected B:', isProtectedB);
 
       if (isProtectedB) {
@@ -84,27 +70,32 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           if (!isMemberOrOwner) {
             console.log('User is not a member or owner, redirecting...');
             sessionStorage.setItem('redirected', 'true');
-            sessionStorage.setItem('removedFromCommunity', 'true');
-            window.location.href = "https://devgcx.sharepoint.com";
+            window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
             return Promise.resolve();
-          } else {
-            console.log('User is a member or owner, no redirection needed.');
-            sessionStorage.setItem('redirected', 'true');
           }
-        } else {
+        } 
+        
+        else {
           console.log('Privacy setting is not public, redirecting...');
           sessionStorage.setItem('redirected', 'true');
-          sessionStorage.setItem('removedFromCommunity', 'true');
-          window.location.href = "https://devgcx.sharepoint.com";
+          window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
           return Promise.resolve();
         }
+      } 
+      
+      else {
+        console.log('Site is not Protected B, redirecting...');
+        sessionStorage.setItem('redirected', 'true');
+        window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
+        return Promise.resolve();
       }
-    } catch (error) {
+    } 
+    
+    catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
       sessionStorage.setItem('redirected', 'true');
-      sessionStorage.setItem('removedFromCommunity', 'true');
-      window.location.href = "https://devgcx.sharepoint.com";
+      window.location.href = "https://devgcx.sharepoint.com"; // need to update this in Prod
       return Promise.resolve();
     }
 
