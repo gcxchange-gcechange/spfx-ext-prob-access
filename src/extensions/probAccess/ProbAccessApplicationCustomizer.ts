@@ -61,7 +61,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
         if (isPublic) {
           console.log('Fetching user groups...');
-          const userGroups = await sp.web.currentUser.groups();
+          const currentUser = await sp.web.currentUser();
+          const userGroups = await sp.web.siteUsers.getById(currentUser.Id).groups.get();
           console.log('User Groups:', userGroups);
           const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
           console.log('Is Member or Owner:', isMemberOrOwner);
