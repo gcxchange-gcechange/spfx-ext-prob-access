@@ -103,6 +103,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
     console.log('User has the necessary access, no redirection needed.');
     sessionStorage.setItem('redirectedOnce', 'true');
+    localStorage.setItem('redirected', 'true');
 
     return Promise.resolve();
   }
