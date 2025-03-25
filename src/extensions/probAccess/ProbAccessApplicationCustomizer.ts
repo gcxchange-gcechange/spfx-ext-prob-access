@@ -28,6 +28,12 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
+    // Check if redirection has already occurred
+    if (sessionStorage.getItem('redirectedOnce') === 'true' && localStorage.getItem('redirected') === 'true') {
+      console.log('Redirection has already occurred in this session and user will not be allowed, skipping...');
+      return Promise.resolve();
+    }
+
     try {
       console.log('Fetching current web...');
       const currentWeb = await sp.web();
@@ -61,7 +67,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
           if (!isMemberOrOwner) {
             console.log('User is not a member or owner, redirecting...');
-            sessionStorage.setItem('redirected', 'true');
+            sessionStorage.setItem('redirectedOnce', 'true');
+            localStorage.setItem('redirected', 'true');
             window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
             return Promise.resolve();
           }
@@ -69,7 +76,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
         else {
           console.log('Privacy setting is not public, redirecting...');
-          sessionStorage.setItem('redirected', 'true');
+          sessionStorage.setItem('redirectedOnce', 'true');
+          localStorage.setItem('redirected', 'true');
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
           return Promise.resolve();
         }
@@ -77,7 +85,8 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
       else {
         console.log('Site is not Protected B, redirecting...');
-        sessionStorage.setItem('redirected', 'true');
+        sessionStorage.setItem('redirectedOnce', 'true');
+        localStorage.setItem('redirected', 'true');
         window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
         return Promise.resolve();
       }
@@ -86,13 +95,14 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
-      sessionStorage.setItem('redirected', 'true');
+      sessionStorage.setItem('redirectedOnce', 'true');
+      localStorage.setItem('redirected', 'true');
       window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
       return Promise.resolve();
     }
 
     console.log('User has the necessary access, no redirection needed.');
-    sessionStorage.setItem('redirected', 'true');
+    sessionStorage.setItem('redirectedOnce', 'true');
 
     return Promise.resolve();
   }
