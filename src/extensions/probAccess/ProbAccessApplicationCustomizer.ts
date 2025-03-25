@@ -28,12 +28,6 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
-    // Check if redirection has already occurred
-    if (sessionStorage.getItem('redirected') === 'true') {
-      console.log('Redirection has already occurred, skipping...');
-      return Promise.resolve();
-    }
-
     try {
       console.log('Fetching current web...');
       const currentWeb = await sp.web();
