@@ -28,12 +28,13 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
     console.log('Initialized ProbAccessApplicationCustomizer');
 
-    // Check if redirection has already occurred
-    if (sessionStorage.getItem('redirected') === 'true') {
-      console.log('Redirection has already occurred, skipping...');
-      return Promise.resolve();
-    }
+    // Perform the redirection check on every page load
+    await this.checkAndRedirectUser();
 
+    return Promise.resolve();
+  }
+
+  private async checkAndRedirectUser(): Promise<void> {
     try {
       console.log('Fetching current web...');
       const currentWeb = await sp.web();
@@ -45,7 +46,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       // Check if the current URL is the app catalog page
       if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
         console.log('App catalog page detected, skipping redirection...');
-        return Promise.resolve();
+        return;
       }
 
       if (isProtectedB) {
@@ -69,37 +70,32 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
             console.log('User is not a member or owner, redirecting...');
             sessionStorage.setItem('redirected', 'true');
             window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
-            return Promise.resolve();
+            return;
           }
         } 
-
         else {
           console.log('Privacy setting is not public, redirecting...');
           sessionStorage.setItem('redirected', 'true');
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
-          return Promise.resolve();
+          return;
         }
       } 
-
       else {
         console.log('Site is not Protected B, redirecting...');
         sessionStorage.setItem('redirected', 'true');
         window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
-        return Promise.resolve();
+        return;
       }
     } 
-    
     catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
       sessionStorage.setItem('redirected', 'true');
       window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
-      return Promise.resolve();
+      return;
     }
 
     console.log('User has the necessary access, no redirection needed.');
     sessionStorage.setItem('redirected', 'true');
-
-    return Promise.resolve();
   }
 }
