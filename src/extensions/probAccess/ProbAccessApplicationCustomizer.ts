@@ -27,7 +27,7 @@
 import { override } from '@microsoft/decorators';
 import { Log } from '@microsoft/sp-core-library';
 import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
-import { sp } from "@pnp/sp";
+//import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
 import "@pnp/sp/site-groups/web";
 import "@pnp/sp/security";
@@ -78,19 +78,19 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           console.log('Is Public:', isPublic);
           console.log('Is Private:', isPrivate);
 
-          if (isPublic) {
-            console.log('Fetching user groups...');
-            const userGroups = await sp.web.currentUser.groups.get();
-            console.log('User Groups:', userGroups);
-            const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
-            console.log('Is Member or Owner:', isMemberOrOwner);
+          // if (isPublic) {
+          //   console.log('Fetching user groups...');
+          //   const userGroups = await sp.web.currentUser.groups.get();
+          //   console.log('User Groups:', userGroups);
+          //   const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
+          //   console.log('Is Member or Owner:', isMemberOrOwner);
 
-            if (!isMemberOrOwner) {
-              console.log('User is not a member or owner, redirecting...');
-              window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
-              return Promise.resolve();
-            }
-          }
+          //   if (!isMemberOrOwner) {
+          //     console.log('User is not a member or owner, redirecting...');
+          //     window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+          //     return Promise.resolve();
+          //   }
+          // }
         } 
         
         else {
