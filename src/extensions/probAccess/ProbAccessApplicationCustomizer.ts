@@ -68,13 +68,13 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
 
       if (isProtectedB) {
         console.log('Checking site access level from the DOM...');
-        const groupInfoElement = document.querySelector('[data-automationid="SiteHeaderGroupInfo"]');
+        const groupInfoElement = document.querySelector('[data-automationid="SiteHeaderGroupType"]');
 
         if (groupInfoElement) {
           const groupInfoText = groupInfoElement.textContent || '';
           console.log('Group Info Text:', groupInfoText);
-          const isPublic = groupInfoText.includes('Public group | PROTECTED B - PROTÉGÉ B');
-          const isPrivate = groupInfoText.includes('Private group | PROTECTED B - PROTÉGÉ B');
+          const isPublic = groupInfoText.includes('Public group');
+          const isPrivate = groupInfoText.includes('Private group');
           console.log('Is Public:', isPublic);
           console.log('Is Private:', isPrivate);
 
