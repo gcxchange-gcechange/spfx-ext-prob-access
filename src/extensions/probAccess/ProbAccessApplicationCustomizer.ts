@@ -1,3 +1,16 @@
+/**
+ * ProBAccessApplicationCustomizer -
+ * Checks is a site is Protected B  by looking for /teams/b in the URL
+ * If Access level is Public:
+    Check if the user is a member or owner.
+    If not, remove and redirect to the home page.
+ * If Access level is Private:
+    Do Nothing.
+ * Addtional Use Cases: 
+    Ensure the app catalog is never redirected.
+    No redirection for new tabs or search bar accesses, except for unauthorized access to public Protected B sites.
+ */
+
 import { override } from '@microsoft/decorators';
 import { Log } from '@microsoft/sp-core-library';
 import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
@@ -43,7 +56,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
       console.log('Is Protected B:', isProtectedB);
 
       // Check if the current URL is the app catalog page
-      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
+      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
         console.log('App catalog page detected, skipping redirection...');
         return Promise.resolve();
       }
