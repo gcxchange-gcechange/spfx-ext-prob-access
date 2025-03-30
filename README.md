@@ -7,6 +7,9 @@ This extensions is responsible for the following:
 - If yes, responsible for checking if the privacy setting is set to public for that particular site
 - If yes, responsible for checking if the user logging in is a member or owner of this site
 - If no, responsible for redirecting the user to the home page
+Addtional Use Cases: 
+- Ensure the app catalog is never redirected.
+- No redirection for new tabs or search bar accesses, except for unauthorized access to public Protected B sites.
 
 ## Used SharePoint Framework Version
 
