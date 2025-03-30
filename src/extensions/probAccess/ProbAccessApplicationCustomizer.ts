@@ -24,10 +24,23 @@
     No redirection for new tabs or search bar accesses, except for unauthorized access to public Protected B sites.
  */
 
+/**
+ * ProBAccessApplicationCustomizer -
+ * Checks if a site is Protected B by looking for /teams/b in the URL
+ * If Access level is Public:
+    Check if the user is a member or owner.
+    If not, remove and redirect to the home page.
+ * If Access level is Private:
+    Do Nothing.
+ * Additional Use Cases:
+    Ensure the app catalog is never redirected.
+    No redirection for new tabs or search bar accesses, except for unauthorized access to public Protected B sites.
+ */
+
 import { override } from '@microsoft/decorators';
 import { Log } from '@microsoft/sp-core-library';
 import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
-//import { sp } from "@pnp/sp";
+import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
 import "@pnp/sp/site-groups/web";
 import "@pnp/sp/security";
@@ -78,19 +91,24 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
           console.log('Is Public:', isPublic);
           console.log('Is Private:', isPrivate);
 
-          // if (isPublic) {
-          //   console.log('Fetching user groups...');
-          //   const userGroups = await sp.web.currentUser.groups.get();
-          //   console.log('User Groups:', userGroups);
-          //   const isMemberOrOwner = userGroups.some((group: { Title: string; }) => group.Title.includes("Members") || group.Title.includes("Owners"));
-          //   console.log('Is Member or Owner:', isMemberOrOwner);
+          if (isPublic) {
+            console.log('Fetching user groups...');
+            const userGroups = await sp.web.currentUser.groups.get();
+            console.log('User Groups:', userGroups);
 
-          //   if (!isMemberOrOwner) {
-          //     console.log('User is not a member or owner, redirecting...');
-          //     window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
-          //     return Promise.resolve();
-          //   }
-          // }
+            // Check if the user is a member or owner of any group
+            const isMemberOrOwner = userGroups.some((group: { Title: string; }) => {
+              console.log('Group Title:', group.Title);
+              return group.Title.includes("Members") || group.Title.includes("Owners");
+            });
+            console.log('Is Member or Owner:', isMemberOrOwner);
+
+            if (!isMemberOrOwner) {
+              console.log('User is not a member or owner, redirecting...');
+              window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
+              return Promise.resolve();
+            }
+          }
         } 
         
         else {
@@ -98,6 +116,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
         }
       }
     } 
+    
     catch (error) {
       Log.error(LOG_SOURCE, error);
       console.error('Error:', error);
