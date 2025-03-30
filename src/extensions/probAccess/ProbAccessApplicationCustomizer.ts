@@ -21,9 +21,10 @@ import "@pnp/sp/security";
 import "@pnp/sp/sites";
 import { IWebInfo } from '@pnp/sp/webs';
 import "@pnp/sp/site-users/web";
+import { setup as pnpSetup } from "@pnp/common";
 
 // Initialize PnPjs
-sp.setup({
+pnpSetup({
   sp: {
     baseUrl: "https://devgcx.sharepoint.com" // need to update this link in Prod
   }
@@ -48,15 +49,13 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
     }
 
     try {
-      console.log('Fetching current web...');
-      const currentWeb = await sp.web();
-      const siteUrl = currentWeb.Url;
+      const siteUrl = window.location.href.toLowerCase();
       console.log('Site URL:', siteUrl);
       const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
       // Check if the current URL is the app catalog page
-      if (window.location.href.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) { // need to update this link in Prod
+      if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
         console.log('App catalog page detected, skipping redirection...');
         return Promise.resolve();
       }
