@@ -70,15 +70,22 @@
                 const userGroups = await sp.web.currentUser.groups.get();
                 console.log('User Groups:', userGroups);
     
-                // Check if the user is a member or owner of any group by membership
-                const isMemberOrOwner = userGroups.some((group: { Id: number; Title: string; }) => {
+                // Check if the user is a member or owner of any group
+                const currentUser = await sp.web.currentUser.get();
+                const isMemberOrOwner = await Promise.all(userGroups.map(async (group: { Id: number; Title: string; }) => {
                   console.log('Group ID:', group.Id);
                   console.log('Group Title:', group.Title);
-                  return group.Title.includes("Members") || group.Title.includes("Owners");
-                });
-                console.log('Is Member or Owner:', isMemberOrOwner);
+                  try {
+                    const groupUser = await sp.web.siteGroups.getById(group.Id).users.getById(currentUser.Id).get();
+                    return groupUser ? true : false;
+                  } catch (error) {
+                    return false;
+                  }
+                }));
+                const hasAccess = isMemberOrOwner.includes(true);
+                console.log('Has Access:', hasAccess);
     
-                if (!isMemberOrOwner) {
+                if (!hasAccess) {
                   console.log('User is not a member or owner, redirecting...');
                   window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
                   return Promise.resolve();
