@@ -14,7 +14,7 @@
     import { override } from '@microsoft/decorators';
     import { Log } from '@microsoft/sp-core-library';
     import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
-    import { sp } from "@pnp/sp";
+//    import { sp } from "@pnp/sp";
     import "@pnp/sp/webs";
     import "@pnp/sp/site-groups/web";
     import "@pnp/sp/security";
@@ -66,28 +66,38 @@
               console.log('Is Private:', isPrivate);
     
               if (isPublic) {
-                console.log('Checking user membership...');
-                const currentUser = await sp.web.currentUser.get();
+                console.log('Checking user membership using DOM...');
+                const membershipElements = document.querySelectorAll('.ms-groupMembershipMenu-linkText');
+                const isMemberOrOwner = Array.from(membershipElements).some((element) => {
+                  const textContent = element.textContent?.trim();
+                  console.log('Membership Text:', textContent);
+                  return textContent === "Owner" || textContent === "Member";
+                });
+                console.log('Is Member or Owner:', isMemberOrOwner);
     
-                // Check if the user is a member or owner using REST API
-                const userIsMemberOrOwner = await this.checkUserMembership(currentUser.Id);
-                console.log('Is Member or Owner:', userIsMemberOrOwner);
-    
-                if (!userIsMemberOrOwner) {
+                if (!isMemberOrOwner) {
                   console.log('User is not a member or owner, redirecting...');
                   window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
                   return Promise.resolve();
-                } else {
+                } 
+                
+                else {
                   console.log('User is a member or owner, no redirection needed.');
                 }
-              } else {
+              } 
+              
+              else {
                 console.log('Site is private, no redirection needed.');
               }
-            } else {
+            } 
+            
+            else {
               console.error('Group info element not found.');
             }
           }
-        } catch (error) {
+        } 
+        
+        catch (error) {
           Log.error(LOG_SOURCE, error);
           console.error('Error:', error);
           window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
@@ -96,21 +106,5 @@
     
         console.log('User has the necessary access, no redirection needed.');
         return Promise.resolve();
-      }
-    
-      private async checkUserMembership(userId: number): Promise<boolean> {
-        try {
-          const groups = await sp.web.siteGroups();
-          for (const group of groups) {
-            const users = await sp.web.siteGroups.getById(group.Id).users.get();
-            if (users.some(user => user.Id === userId)) {
-              return true;
-            }
-          }
-          return false;
-        } catch (error) {
-          console.error('Error checking user membership:', error);
-          return false;
-        }
       }
     }
