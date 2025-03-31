@@ -66,26 +66,14 @@
               console.log('Is Private:', isPrivate);
     
               if (isPublic) {
-                console.log('Fetching user groups...');
-                const userGroups = await sp.web.currentUser.groups.get();
-                console.log('User Groups:', userGroups);
-    
-                // Check if the user is a member or owner of any group
+                console.log('Checking user membership...');
                 const currentUser = await sp.web.currentUser.get();
-                const isMemberOrOwner = await Promise.all(userGroups.map(async (group: { Id: number; Title: string; }) => {
-                  console.log('Group ID:', group.Id);
-                  console.log('Group Title:', group.Title);
-                  try {
-                    const groupUser = await sp.web.siteGroups.getById(group.Id).users.getById(currentUser.Id).get();
-                    return groupUser ? true : false;
-                  } catch (error) {
-                    return false;
-                  }
-                }));
-                const hasAccess = isMemberOrOwner.includes(true);
-                console.log('Has Access:', hasAccess);
     
-                if (!hasAccess) {
+                // Check if the user is a member or owner using REST API
+                const userIsMemberOrOwner = await this.checkUserMembership(currentUser.Id);
+                console.log('Is Member or Owner:', userIsMemberOrOwner);
+    
+                if (!userIsMemberOrOwner) {
                   console.log('User is not a member or owner, redirecting...');
                   window.location.href = "https://devgcx.sharepoint.com"; // need to update this link in Prod
                   return Promise.resolve();
@@ -108,5 +96,21 @@
     
         console.log('User has the necessary access, no redirection needed.');
         return Promise.resolve();
+      }
+    
+      private async checkUserMembership(userId: number): Promise<boolean> {
+        try {
+          const groups = await sp.web.siteGroups();
+          for (const group of groups) {
+            const users = await sp.web.siteGroups.getById(group.Id).users.get();
+            if (users.some(user => user.Id === userId)) {
+              return true;
+            }
+          }
+          return false;
+        } catch (error) {
+          console.error('Error checking user membership:', error);
+          return false;
+        }
       }
     }
