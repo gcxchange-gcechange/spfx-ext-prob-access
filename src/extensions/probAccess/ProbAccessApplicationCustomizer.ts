@@ -71,7 +71,7 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
             const isMemberOrOwner = Array.from(membershipElements).some((element) => {
               const textContent = element.textContent?.trim();
               console.log('Membership Text:', textContent);
-              return textContent === "Owner" || textContent === "Member";
+              return textContent && (textContent.includes("Owner") || textContent.includes("Member"));
             });
             console.log('Is Member or Owner:', isMemberOrOwner);
 
