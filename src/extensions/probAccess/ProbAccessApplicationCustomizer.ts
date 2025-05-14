@@ -75,15 +75,24 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
           console.log('Owners Group:', ownersGroup);
           console.log('Members Group:', membersGroup);
 
-          // Check if the user belongs to either group
+          // Fetch users in Owners and Members groups
           const [owners, members] = await Promise.all([
             sp.web.siteGroups.getById(ownersGroup.Id).users.get(),
             sp.web.siteGroups.getById(membersGroup.Id).users.get()
           ]);
 
+          console.log('Owners:', owners);
+          console.log('Members:', members);
+
+          // Check if the user belongs to either group
           const isMemberOrOwner = [...owners, ...members].some((user) => {
-            return user.Email === currentUser.Email || user.Id === currentUser.Id;
+            // Ensure comparison is case-insensitive for email and ID
+            return (
+              user.Email?.toLowerCase() === currentUser.Email?.toLowerCase() ||
+              user.Id === currentUser.Id
+            );
           });
+
           console.log('Is Member or Owner:', isMemberOrOwner);
 
           // Redirect if the user is not a member or owner
