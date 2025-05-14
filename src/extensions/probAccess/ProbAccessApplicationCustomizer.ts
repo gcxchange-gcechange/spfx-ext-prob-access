@@ -40,7 +40,7 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       const siteUrl = window.location.href.toLowerCase();
       console.log('Site URL:', siteUrl);
 
-      // Step 1: Check if the site is Protected B
+      // check if the site is Protected B
       const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
@@ -49,16 +49,16 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
-      // Step 2: Skip checks for the app catalog
+      // skip checks for the app catalog
       if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
         console.log('App catalog page detected, skipping redirection...');
         return Promise.resolve();
       }
 
-      // Step 3: Check the site's privacy setting
+      // check the site's privacy setting
       const siteProperties = await sp.site.get();
       const isPublic = siteProperties.Privacy !== "Private";
-      console.log('Site Privacy:', siteProperties.Privacy, 'Is Public:', isPublic);
+      console.log('Is Public:', isPublic);
 
       if (!isPublic) {
         console.log('Site is private, no redirection required.');
@@ -68,7 +68,7 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       const hasAccess = await sp.web.currentUserHasPermissions(PermissionKind.ViewListItems); // Read permissions
       console.log('Does User Have Access:', hasAccess);
 
-      // Step 5: Redirect if the user does not have access
+      // redirect if the user does not have access
       if (!hasAccess) {
         console.log('User does not have access, redirecting...');
         window.location.href = "https://devgcx.sharepoint.com";
@@ -76,11 +76,11 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       }
 
     } catch (error) {
-      // Handle unexpected errors with redirection
+      // handle unexpected errors with redirection
       Log.error(LOG_SOURCE, error.message || error);
       console.error('Error:', error);
 
-      // Fallback redirection to the home page
+      // fallback redirection to the home page
       window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
