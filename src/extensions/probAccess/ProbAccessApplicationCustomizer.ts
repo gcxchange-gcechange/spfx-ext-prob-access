@@ -11,39 +11,39 @@
     No redirection for new tabs or search bar accesses, except for unauthorized access to public Protected B sites.
  */
 
-    import { override } from '@microsoft/decorators';
-    import { Log } from '@microsoft/sp-core-library';
-    import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
-    import { sp } from "@pnp/sp";
-    import "@pnp/sp/webs";
-    import "@pnp/sp/site-groups/web";
-    import "@pnp/sp/security";
-    import "@pnp/sp/sites";
-    import "@pnp/sp/site-users/web";
-    import { setup as pnpSetup } from "@pnp/common";
-    
-    // Initialize PnPjs
-    pnpSetup({
-      sp: {
-        baseUrl: "https://devgcx.sharepoint.com" // need to update this link in Prod
-      }
-    });
-    
-    const LOG_SOURCE: string = 'ProbAccessApplicationCustomizer';
+import { override } from '@microsoft/decorators';
+import { Log } from '@microsoft/sp-core-library';
+import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
+import { sp } from "@pnp/sp";
+import "@pnp/sp/webs";
+import "@pnp/sp/site-users/web";
+import { setup as pnpSetup } from "@pnp/common";
 
-export default class ProbAccessApplicationCustomizer extends BaseApplicationCustomizer<IProbAccessApplicationCustomizerStrings> {
+// Initialize PnPjs
+pnpSetup({
+  sp: {
+    baseUrl: "https://devgcx.sharepoint.com" // Update this link in Prod
+  }
+});
+
+const LOG_SOURCE: string = 'ProBAccessApplicationCustomizer';
+
+export default class ProBAccessApplicationCustomizer extends BaseApplicationCustomizer<any> {
 
   @override
   public async onInit(): Promise<void> {
-    Log.info(LOG_SOURCE, `Initialized ProbAccessApplicationCustomizer`);
-    console.log('Initialized ProbAccessApplicationCustomizer');
+    Log.info(LOG_SOURCE, `Initialized ProBAccessApplicationCustomizer`);
+    console.log('Initialized ProBAccessApplicationCustomizer');
 
     try {
       const siteUrl = window.location.href.toLowerCase();
       console.log('Site URL:', siteUrl);
+
+      // Check if this is a "Protected B" site
       const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
+      // Skip redirection for app catalog
       if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
         console.log('App catalog page detected, skipping redirection...');
         return Promise.resolve();
@@ -58,63 +58,35 @@ export default class ProbAccessApplicationCustomizer extends BaseApplicationCust
         const mailNickname = mailNicknameMatch[1];
         console.log('Mail Nickname:', mailNickname);
 
-        // log all site groups for debugging
-        const allGroups = await sp.web.siteGroups.get();
-        console.log('All Site Groups:', allGroups);
+        // Check if the privacy setting is public
+        const siteProperties = await sp.site.get();
+        const isPublic = siteProperties.Privacy !== "Private";
+        console.log('Is Public:', isPublic);
 
-        // filter groups to find the matching group
-        let groupResponse = await sp.web.siteGroups.filter(`Title eq '${mailNickname}'`).get();
-        console.log('Group Response:', groupResponse);
+        if (isPublic) {
+          // Verify if the current user is a member or owner
+          const currentUser = await sp.web.currentUser.get();
+          console.log('Current User:', currentUser);
 
-        // // Step 3: Fallback search if the group isn't found
-        // if (groupResponse.length === 0) {
-        //   console.warn(`Group not found for mailNickname: ${mailNickname}`);
-        //   console.warn(`Attempting fallback search...`);
+          const members = await sp.web.siteUsers.get();
+          const isMemberOrOwner = members.some((member) => {
+            return member.Email === currentUser.Email || member.Id === currentUser.Id;
+          });
+          console.log('Is Member or Owner:', isMemberOrOwner);
 
-        //   // Try to find the group by partial match
-        //   const matchingGroup = allGroups.find(g => g.Title.includes(mailNickname));
-        //   if (matchingGroup) {
-        //     console.log('Fallback Group Found:', matchingGroup);
-        //     groupResponse = [matchingGroup]; // Use the fallback group
-        //   } else {
-        //     console.error(`No group found for mailNickname: ${mailNickname}, even in fallback search.`);
-        //     return Promise.resolve(); // Exit gracefully
-        //   }
-        // }
-
-        // const groupId = groupResponse[0].Id;
-        // console.log('Group ID:', groupId);
-
-        // // Step 4: Check permissions and group visibility
-        // const group = await sp.web.siteGroups.getById(groupId).get();
-        // const isPublic = group.AllowMembersEditMembership && group.AllowRequestToJoinLeave && group.AutoAcceptRequestToJoinLeave;
-        // console.log('Is Public:', isPublic);
-
-        // if (isPublic) {
-        //   const currentUser = await sp.web.currentUser.get();
-        //   console.log('Current User:', currentUser);
-
-        //   const membersResponse = await sp.web.siteGroups.getById(groupId).users.get();
-        //   const isMemberOrOwner = membersResponse.some((member) => {
-        //     return member.Email === currentUser.Email || member.Id === currentUser.Id;
-        //   });
-        //   console.log('Is Member or Owner:', isMemberOrOwner);
-
-        //   if (!isMemberOrOwner) {
-        //     console.log('User is not a member or owner, redirecting...');
-        //     setTimeout(() => {
-        //       window.location.href = "https://devgcx.sharepoint.com";
-        //     }, 10 * 60 * 1000); // 10 minutes in milliseconds
-        //     return Promise.resolve();
-        //   }
-        // }
+          if (!isMemberOrOwner) {
+            console.log('User is not a member or owner, redirecting...');
+            window.location.href = "https://devgcx.sharepoint.com";
+            return Promise.resolve();
+          }
+        }
       }
     } catch (error) {
-      Log.error(LOG_SOURCE, error);
+      Log.error(LOG_SOURCE, error.message || error);
       console.error('Error:', error);
-      setTimeout(() => {
-        window.location.href = "https://devgcx.sharepoint.com";
-      }, 10 * 60 * 1000); // 10 minutes in milliseconds
+
+      // Provide a fallback redirection in case of errors
+      window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
 
