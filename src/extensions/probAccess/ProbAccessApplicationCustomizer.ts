@@ -16,6 +16,7 @@ import { Log } from '@microsoft/sp-core-library';
 import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
 import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
+import "@pnp/sp/site-groups/web";
 import "@pnp/sp/site-users/web";
 import { setup as pnpSetup } from "@pnp/common";
 
@@ -64,16 +65,28 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         console.log('Is Public:', isPublic);
 
         if (isPublic) {
-          // Verify if the current user is a member or owner
+          // Get current user
           const currentUser = await sp.web.currentUser.get();
           console.log('Current User:', currentUser);
 
-          const members = await sp.web.siteUsers.get();
-          const isMemberOrOwner = members.some((member) => {
-            return member.Email === currentUser.Email || member.Id === currentUser.Id;
+          // Get Members and Owners groups
+          const ownersGroup = await sp.web.associatedOwnerGroup.get();
+          const membersGroup = await sp.web.associatedMemberGroup.get();
+          console.log('Owners Group:', ownersGroup);
+          console.log('Members Group:', membersGroup);
+
+          // Check if the user belongs to either group
+          const [owners, members] = await Promise.all([
+            sp.web.siteGroups.getById(ownersGroup.Id).users.get(),
+            sp.web.siteGroups.getById(membersGroup.Id).users.get()
+          ]);
+
+          const isMemberOrOwner = [...owners, ...members].some((user) => {
+            return user.Email === currentUser.Email || user.Id === currentUser.Id;
           });
           console.log('Is Member or Owner:', isMemberOrOwner);
 
+          // Redirect if the user is not a member or owner
           if (!isMemberOrOwner) {
             console.log('User is not a member or owner, redirecting...');
             window.location.href = "https://devgcx.sharepoint.com";
