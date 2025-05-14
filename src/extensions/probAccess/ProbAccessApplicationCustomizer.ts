@@ -16,9 +16,9 @@ import { Log } from '@microsoft/sp-core-library';
 import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
 import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
-import "@pnp/sp/site-groups/web";
-import "@pnp/sp/site-users/web";
+import "@pnp/sp/security";
 import { setup as pnpSetup } from "@pnp/common";
+import { PermissionKind } from "@pnp/sp/security";
 
 // Initialize PnPjs
 pnpSetup({
@@ -65,38 +65,12 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
-      // Step 4: Get the current user
-      const currentUser = await sp.web.currentUser.get();
-      console.log('Current User:', currentUser);
+      const hasAccess = await sp.web.currentUserHasPermissions(PermissionKind.ViewListItems); // Read permissions
+      console.log('Does User Have Access:', hasAccess);
 
-      // Step 5: Get the Owners and Members groups
-      const ownersGroup = await sp.web.associatedOwnerGroup.get();
-      const membersGroup = await sp.web.associatedMemberGroup.get();
-      console.log('Owners Group:', ownersGroup);
-      console.log('Members Group:', membersGroup);
-
-      // Step 6: Fetch users in Owners and Members groups
-      const [owners, members] = await Promise.all([
-        sp.web.siteGroups.getById(ownersGroup.Id).users.get(),
-        sp.web.siteGroups.getById(membersGroup.Id).users.get()
-      ]);
-
-      console.log('Owners:', owners.map(user => user.Email));
-      console.log('Members:', members.map(user => user.Email));
-
-      // Step 7: Check if the current user is a member or owner
-      const isMemberOrOwner = [...owners, ...members].some(user => {
-        return (
-          user.Email?.toLowerCase() === currentUser.Email?.toLowerCase() ||
-          user.Id === currentUser.Id
-        );
-      });
-
-      console.log('Is Member or Owner:', isMemberOrOwner);
-
-      // Step 8: Redirect if the user does not have access
-      if (!isMemberOrOwner) {
-        console.log('User is not a member or owner, redirecting...');
+      // Step 5: Redirect if the user does not have access
+      if (!hasAccess) {
+        console.log('User does not have access, redirecting...');
         window.location.href = "https://devgcx.sharepoint.com";
         return Promise.resolve();
       }
@@ -105,6 +79,8 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       // Handle unexpected errors with redirection
       Log.error(LOG_SOURCE, error.message || error);
       console.error('Error:', error);
+
+      // Fallback redirection to the home page
       window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
