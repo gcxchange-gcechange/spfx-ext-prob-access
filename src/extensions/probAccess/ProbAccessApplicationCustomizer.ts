@@ -28,7 +28,7 @@ pnpSetup({
 
 const LOG_SOURCE: string = 'ProBAccessApplicationCustomizer';
 
-export default class ProBAccessApplicationCustomizer extends BaseApplicationCustomizer<any> {
+export default class ProBAccessApplicationCustomizer extends BaseApplicationCustomizer<{}> {
 
   @override
   public async onInit(): Promise<void> {
