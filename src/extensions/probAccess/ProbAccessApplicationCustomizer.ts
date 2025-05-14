@@ -40,74 +40,71 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       const siteUrl = window.location.href.toLowerCase();
       console.log('Site URL:', siteUrl);
 
-      // Check if this is a "Protected B" site
+      // Step 1: Check if the site is Protected B
       const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
-      // Skip redirection for app catalog
+      if (!isProtectedB) {
+        console.log('Not a Protected B site, skipping checks...');
+        return Promise.resolve();
+      }
+
+      // Step 2: Skip checks for the app catalog
       if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
         console.log('App catalog page detected, skipping redirection...');
         return Promise.resolve();
       }
 
-      if (isProtectedB) {
-        const mailNicknameMatch = siteUrl.match(/\/teams\/(b\d+)/);
-        if (!mailNicknameMatch) {
-          console.error('Mail nickname not found in URL.');
-          return Promise.resolve();
-        }
-        const mailNickname = mailNicknameMatch[1];
-        console.log('Mail Nickname:', mailNickname);
+      // Step 3: Check the site's privacy setting
+      const siteProperties = await sp.site.get();
+      const isPublic = siteProperties.Privacy !== "Private";
+      console.log('Site Privacy:', siteProperties.Privacy, 'Is Public:', isPublic);
 
-        // Check if the privacy setting is public
-        const siteProperties = await sp.site.get();
-        const isPublic = siteProperties.Privacy !== "Private";
-        console.log('Is Public:', isPublic);
-
-        if (isPublic) {
-          // Get current user
-          const currentUser = await sp.web.currentUser.get();
-          console.log('Current User:', currentUser);
-
-          // Get Members and Owners groups
-          const ownersGroup = await sp.web.associatedOwnerGroup.get();
-          const membersGroup = await sp.web.associatedMemberGroup.get();
-          console.log('Owners Group:', ownersGroup);
-          console.log('Members Group:', membersGroup);
-
-          // Fetch users in Owners and Members groups
-          const [owners, members] = await Promise.all([
-            sp.web.siteGroups.getById(ownersGroup.Id).users.get(),
-            sp.web.siteGroups.getById(membersGroup.Id).users.get()
-          ]);
-
-          console.log('Owners:', owners);
-          console.log('Members:', members);
-
-          // Check if the user belongs to either group
-          const isMemberOrOwner = [...owners, ...members].some((user) => {
-            // Ensure comparison is case-insensitive for email and ID
-            return (
-              user.Email?.toLowerCase() === currentUser.Email?.toLowerCase() ||
-              user.Id === currentUser.Id
-            );
-          });
-
-          console.log('Is Member or Owner:', isMemberOrOwner);
-
-          // Redirect if the user is not a member or owner
-          if (!isMemberOrOwner) {
-            console.log('User is not a member or owner, redirecting...');
-            window.location.href = "https://devgcx.sharepoint.com";
-            return Promise.resolve();
-          }
-        }
+      if (!isPublic) {
+        console.log('Site is private, no redirection required.');
+        return Promise.resolve();
       }
+
+      // Step 4: Get the current user
+      const currentUser = await sp.web.currentUser.get();
+      console.log('Current User:', currentUser);
+
+      // Step 5: Get the Owners and Members groups
+      const ownersGroup = await sp.web.associatedOwnerGroup.get();
+      const membersGroup = await sp.web.associatedMemberGroup.get();
+      console.log('Owners Group:', ownersGroup);
+      console.log('Members Group:', membersGroup);
+
+      // Step 6: Fetch users in Owners and Members groups
+      const [owners, members] = await Promise.all([
+        sp.web.siteGroups.getById(ownersGroup.Id).users.get(),
+        sp.web.siteGroups.getById(membersGroup.Id).users.get()
+      ]);
+
+      console.log('Owners:', owners.map(user => user.Email));
+      console.log('Members:', members.map(user => user.Email));
+
+      // Step 7: Check if the current user is a member or owner
+      const isMemberOrOwner = [...owners, ...members].some(user => {
+        return (
+          user.Email?.toLowerCase() === currentUser.Email?.toLowerCase() ||
+          user.Id === currentUser.Id
+        );
+      });
+
+      console.log('Is Member or Owner:', isMemberOrOwner);
+
+      // Step 8: Redirect if the user does not have access
+      if (!isMemberOrOwner) {
+        console.log('User is not a member or owner, redirecting...');
+        window.location.href = "https://devgcx.sharepoint.com";
+        return Promise.resolve();
+      }
+
     } catch (error) {
+      // Handle unexpected errors with redirection
       Log.error(LOG_SOURCE, error.message || error);
       console.error('Error:', error);
-
-      // Provide a fallback redirection in case of errors
       window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
