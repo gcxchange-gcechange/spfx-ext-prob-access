@@ -2,7 +2,7 @@
  * ProBAccessApplicationCustomizer -
  * Checks if a site is Protected B by looking for /teams/b in the URL
  * If Access level is Public:
-    Check if the user is a member or owner.
+    Check if the user is a member of a SharePoint group (e.g., Owners, Members).
     If not, remove and redirect to the home page.
  * If Access level is Private:
     Do Nothing.
@@ -70,17 +70,16 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
-      // Check if the user is in the Owners or Members group
-      const isUserOwner = await this.isUserInGroup('Owners', currentUserEmail);
-      const isUserMember = await this.isUserInGroup('Members', currentUserEmail);
+      // Check if the user is in one of the SharePoint groups
+      const isUserAuthorized = await this.isUserInAnyGroup(['Owners', 'Members', 'Visitors'], currentUserEmail);
 
-      if (!isUserOwner && !isUserMember) {
-        console.log('User is not in Owners or Members group, redirecting...');
+      if (!isUserAuthorized) {
+        console.log('User is not a member of any authorized group, redirecting...');
         window.location.href = "https://devgcx.sharepoint.com";
         return Promise.resolve();
       }
 
-      console.log('User is in the Owners or Members group, no redirection needed.');
+      console.log('User is a member of an authorized group, no redirection needed.');
 
     } catch (error) {
       // Handle unexpected errors with redirection
@@ -111,7 +110,24 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
     return ""; // Return empty string to force redirection
   }
 
-  // Helper function: Check if the user is in a SharePoint group
+  // Helper function: Check if the user is in any of the specified SharePoint groups
+  private async isUserInAnyGroup(groupNames: string[], userEmail: string): Promise<boolean> {
+    try {
+      for (const groupName of groupNames) {
+        const isInGroup = await this.isUserInGroup(groupName, userEmail);
+        if (isInGroup) {
+          console.log(`User is in group: ${groupName}`);
+          return true; // User is in at least one group
+        }
+      }
+      return false; // User is not in any of the specified groups
+    } catch (error) {
+      console.error('Error checking groups:', error);
+      return false; // Assume not authorized if an error occurs
+    }
+  }
+
+  // Helper function: Check if the user is in a specific SharePoint group
   private async isUserInGroup(groupName: string, userEmail: string): Promise<boolean> {
     try {
       // Get the group by name
