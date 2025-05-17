@@ -17,8 +17,7 @@ import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
 import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
 import "@pnp/sp/site-users";
-import "@pnp/sp/lists";
-import "@pnp/sp/items";
+import "@pnp/sp/site-groups";
 import { setup as pnpSetup } from "@pnp/common";
 
 // Initialize PnPjs
@@ -41,7 +40,7 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       const siteUrl = window.location.href.toLowerCase();
       console.log('Site URL:', siteUrl);
 
-      // check if the site is Protected B
+      // Check if the site is Protected B
       const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
@@ -50,7 +49,7 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
-      // skip checks for the app catalog
+      // Skip checks for the app catalog
       if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
         console.log('App catalog page detected, skipping redirection...');
         return Promise.resolve();
@@ -62,7 +61,7 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       console.log('Current User Email:', currentUserEmail);
 
       // Retrieve the site address from the URL
-      const siteAddress = this.getSiteAddressFromUrl(siteUrl); // Helper function
+      const siteAddress = this.getSiteAddressFromUrl(siteUrl);
       console.log('Site Address:', siteAddress);
 
       if (!siteAddress) {
@@ -71,27 +70,24 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
-      const siteUsers = await sp.web.lists.getByTitle(siteAddress).items.select("Email").get(); // Fetch users for the site
-      const siteUserEmails = siteUsers.map(user => user.Email.toLowerCase());
-      console.log('Site User Emails:', siteUserEmails);
+      // Check if the user is in the Owners or Members group
+      const isUserOwner = await this.isUserInGroup('Owners', currentUserEmail);
+      const isUserMember = await this.isUserInGroup('Members', currentUserEmail);
 
-      // Check if the current user's email exists in the site users list
-      const isUserInSite = siteUserEmails.includes(currentUserEmail);
-      console.log('Is User in Site:', isUserInSite);
-
-      // Redirect if the user is not in the site users list
-      if (!isUserInSite) {
-        console.log('User is not in the site user list, redirecting...');
+      if (!isUserOwner && !isUserMember) {
+        console.log('User is not in Owners or Members group, redirecting...');
         window.location.href = "https://devgcx.sharepoint.com";
         return Promise.resolve();
       }
 
+      console.log('User is in the Owners or Members group, no redirection needed.');
+
     } catch (error) {
-      // handle unexpected errors with redirection
+      // Handle unexpected errors with redirection
       Log.error(LOG_SOURCE, error.message || error);
       console.error('Error:', error);
 
-      // fallback redirection to the home page
+      // Fallback redirection to the home page
       window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
@@ -105,13 +101,29 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
     // Extract the part of the URL after '/sites/' or '/teams/'
     const match = url.match(/\/(sites|teams)\/([^/?]+)/);
     if (match && match[2]) {
-        const siteAddress = match[2].trim(); // Extract and trim the site address (e.g., b10001638)
-        console.log('Extracted Site Address:', siteAddress);
-        return siteAddress;
+      const siteAddress = match[2].trim(); // Extract and trim the site address (e.g., b10001638)
+      console.log('Extracted Site Address:', siteAddress);
+      return siteAddress;
     }
 
-    // If no match, log a warning and return an empty string to force redirection
+    // If no match, log a warning and return an empty string
     console.warn('Could not extract site address from URL:', url);
     return ""; // Return empty string to force redirection
+  }
+
+  // Helper function: Check if the user is in a SharePoint group
+  private async isUserInGroup(groupName: string, userEmail: string): Promise<boolean> {
+    try {
+      // Get the group by name
+      const groupUsers = await sp.web.siteGroups.getByName(groupName).users();
+      const groupEmails = groupUsers.map(user => user.Email.toLowerCase());
+      console.log(`Users in ${groupName} group:`, groupEmails);
+
+      // Check if the user's email is in the group
+      return groupEmails.includes(userEmail.toLowerCase());
+    } catch (error) {
+      console.error(`Error fetching group '${groupName}':`, error);
+      return false; // If group is not found, return false
+    }
   }
 }
