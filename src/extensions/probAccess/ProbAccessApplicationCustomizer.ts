@@ -1,14 +1,8 @@
 /**
  * ProBAccessApplicationCustomizer -
- * Checks if a site is Protected B by looking for /teams/b in the URL
- * If Access level is Public:
-    Check if the user is a member of a SharePoint group (e.g., Owners, Members).
-    If not, remove and redirect to the home page.
- * If Access level is Private:
-    Do Nothing.
- * Additional Use Cases:
-    Ensure the app catalog is never redirected.
-    No redirection for new tabs or search bar accesses, except for unauthorized access to public Protected B sites.
+ * This script validates if a user is authorized to access a GCXchange community.
+ * It checks membership in SharePoint Groups (e.g., Owners, Members).
+ * If the user is not authorized, they are redirected to the home page.
  */
 
 import { override } from '@microsoft/decorators';
@@ -16,14 +10,14 @@ import { Log } from '@microsoft/sp-core-library';
 import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
 import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
-import "@pnp/sp/site-users";
 import "@pnp/sp/site-groups";
+import "@pnp/sp/site-users";
 import { setup as pnpSetup } from "@pnp/common";
 
 // Initialize PnPjs
 pnpSetup({
   sp: {
-    baseUrl: "https://devgcx.sharepoint.com" // Update this link in Prod
+    baseUrl: "https://devgcx.sharepoint.com", // Update this for production
   }
 });
 
@@ -40,18 +34,18 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       const siteUrl = window.location.href.toLowerCase();
       console.log('Site URL:', siteUrl);
 
-      // Check if the site is Protected B
-      const isProtectedB = siteUrl.includes("/teams/b");
-      console.log('Is Protected B:', isProtectedB);
+      // Check if the site is a GCXchange community (e.g., contains /teams/b)
+      const isGCXCommunity = siteUrl.includes("/teams/b");
+      console.log('Is GCXchange Community:', isGCXCommunity);
 
-      if (!isProtectedB) {
-        console.log('Not a Protected B site, skipping checks...');
+      if (!isGCXCommunity) {
+        console.log('Not a GCXchange community site, skipping checks...');
         return Promise.resolve();
       }
 
       // Skip checks for the app catalog
       if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
-        console.log('App catalog page detected, skipping redirection...');
+        console.log('App catalog page detected, skipping checks...');
         return Promise.resolve();
       }
 
@@ -60,86 +54,96 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       const currentUserEmail = currentUser.Email.toLowerCase();
       console.log('Current User Email:', currentUserEmail);
 
-      // Retrieve the site address from the URL
+      // Extract the site address (community identifier) from the URL
       const siteAddress = this.getSiteAddressFromUrl(siteUrl);
-      console.log('Site Address:', siteAddress);
+      console.log('Site Address (Community Identifier):', siteAddress);
 
       if (!siteAddress) {
         console.error('Site address could not be determined. Redirecting user for safety.');
-        window.location.href = "https://devgcx.sharepoint.com"; // Redirect user
+        window.location.href = "https://devgcx.sharepoint.com"; // Redirect to home page
         return Promise.resolve();
       }
 
-      // Check if the user is in one of the SharePoint groups
-      const isUserAuthorized = await this.isUserInAnyGroup(['Owners', 'Members', 'Visitors'], currentUserEmail);
+      // Validate user membership in SharePoint Groups
+      const isUserAuthorized = await this.isUserInAnyGroup(['Owners', 'Members'], currentUserEmail);
 
       if (!isUserAuthorized) {
-        console.log('User is not a member of any authorized group, redirecting...');
-        window.location.href = "https://devgcx.sharepoint.com";
+        console.log('User is not authorized to access this community. Redirecting...');
+        window.location.href = "https://devgcx.sharepoint.com"; // Redirect to home page
         return Promise.resolve();
       }
 
-      console.log('User is a member of an authorized group, no redirection needed.');
+      console.log('User is authorized to access the community.');
 
     } catch (error) {
-      // Handle unexpected errors with redirection
+      // Handle errors gracefully
       Log.error(LOG_SOURCE, error.message || error);
       console.error('Error:', error);
 
-      // Fallback redirection to the home page
+      // Redirect to the home page as a fallback
       window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
 
-    console.log('User has the necessary access, no redirection needed.');
+    console.log('Access validation completed.');
     return Promise.resolve();
   }
 
-  // Helper function: Extracts site address from the URL
+  /**
+   * Extracts the site address (community identifier) from the URL.
+   * For example, in "https://devgcx.sharepoint.com/teams/b10001638", it extracts "b10001638".
+   */
   private getSiteAddressFromUrl(url: string): string {
-    // Extract the part of the URL after '/sites/' or '/teams/'
     const match = url.match(/\/(sites|teams)\/([^/?]+)/);
     if (match && match[2]) {
-      const siteAddress = match[2].trim(); // Extract and trim the site address (e.g., b10001638)
+      const siteAddress = match[2].trim(); // Extract and trim the site address
       console.log('Extracted Site Address:', siteAddress);
       return siteAddress;
     }
 
-    // If no match, log a warning and return an empty string
     console.warn('Could not extract site address from URL:', url);
-    return ""; // Return empty string to force redirection
+    return ""; // Return empty string if extraction fails
   }
 
-  // Helper function: Check if the user is in any of the specified SharePoint groups
+  /**
+   * Checks if the user is in any of the specified SharePoint Groups.
+   * @param groupNames - An array of SharePoint group names to check.
+   * @param userEmail - The email address of the current user.
+   * @returns True if the user is in any of the specified groups, otherwise false.
+   */
   private async isUserInAnyGroup(groupNames: string[], userEmail: string): Promise<boolean> {
     try {
       for (const groupName of groupNames) {
         const isInGroup = await this.isUserInGroup(groupName, userEmail);
         if (isInGroup) {
           console.log(`User is in group: ${groupName}`);
-          return true; // User is in at least one group
+          return true; // User is authorized if found in any group
         }
       }
-      return false; // User is not in any of the specified groups
+      return false; // User is not in any group
     } catch (error) {
       console.error('Error checking groups:', error);
-      return false; // Assume not authorized if an error occurs
+      return false; // Default to unauthorized on error
     }
   }
 
-  // Helper function: Check if the user is in a specific SharePoint group
+  /**
+   * Checks if the user is in a specific SharePoint Group.
+   * @param groupName - The name of the SharePoint group to check.
+   * @param userEmail - The email address of the current user.
+   * @returns True if the user is in the group, otherwise false.
+   */
+  
   private async isUserInGroup(groupName: string, userEmail: string): Promise<boolean> {
     try {
-      // Get the group by name
       const groupUsers = await sp.web.siteGroups.getByName(groupName).users();
       const groupEmails = groupUsers.map(user => user.Email.toLowerCase());
       console.log(`Users in ${groupName} group:`, groupEmails);
 
-      // Check if the user's email is in the group
       return groupEmails.includes(userEmail.toLowerCase());
     } catch (error) {
       console.error(`Error fetching group '${groupName}':`, error);
-      return false; // If group is not found, return false
+      return false; // Return false if the group is not found or an error occurs
     }
   }
 }
