@@ -17,6 +17,8 @@ import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
 import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
 import "@pnp/sp/site-users";
+import "@pnp/sp/lists";
+import "@pnp/sp/items";
 import { setup as pnpSetup } from "@pnp/common";
 
 // Initialize PnPjs
@@ -54,33 +56,26 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
-      // check the site's privacy setting
-      const siteProperties = await sp.site.get();
-      const isPublic = siteProperties.Privacy !== "Private";
-      console.log('Is Public:', isPublic);
-
-      if (!isPublic) {
-        console.log('Site is private, no redirection required.');
-        return Promise.resolve();
-      }
-
       // Get the current user's email address
       const currentUser = await sp.web.currentUser.get();
       const currentUserEmail = currentUser.Email.toLowerCase();
       console.log('Current User Email:', currentUserEmail);
 
-      // Get the list of site users
-      const siteUsers = await sp.web.siteUsers();
-      const userEmails = siteUsers.map(user => user.Email.toLowerCase());
-      console.log('Site Users Emails:', userEmails);
+      // Retrieve the community's user list (assuming it’s stored in a SharePoint list)
+      const communityName = this.getCommunityNameFromUrl(siteUrl); // Helper function
+      console.log('Community Name:', communityName);
 
-      // Check if the current user's email exists in the site users list
-      const isUserInSite = userEmails.includes(currentUserEmail);
-      console.log('Is User in Site:', isUserInSite);
+      const communityUsers = await sp.web.lists.getByTitle(communityName).items.select("Email").get();
+      const communityUserEmails = communityUsers.map(user => user.Email.toLowerCase());
+      console.log('Community User Emails:', communityUserEmails);
 
-      // Redirect if the user is not in the site users list
-      if (!isUserInSite) {
-        console.log('User is not in the site users list, redirecting...');
+      // Check if the current user's email exists in the community users list
+      const isUserInCommunity = communityUserEmails.includes(currentUserEmail);
+      console.log('Is User in Community:', isUserInCommunity);
+
+      // Redirect if the user is not in the community users list
+      if (!isUserInCommunity) {
+        console.log('User is not in the community user list, redirecting...');
         window.location.href = "https://devgcx.sharepoint.com";
         return Promise.resolve();
       }
@@ -97,5 +92,11 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
 
     console.log('User has the necessary access, no redirection needed.');
     return Promise.resolve();
+  }
+
+  // Helper function: Extracts community name from the URL
+  private getCommunityNameFromUrl(url: string): string {
+    const match = url.match(/\/teams\/b\/([^\/]+)/); // Assumes community name comes after '/teams/b/'
+    return match && match[1] ? match[1] : "DefaultCommunity"; // Fallback to DefaultCommunity if not found
   }
 }
