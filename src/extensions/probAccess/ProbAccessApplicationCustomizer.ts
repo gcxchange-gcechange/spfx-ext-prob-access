@@ -11,21 +11,13 @@
     No redirection for new tabs or search bar accesses, except for unauthorized access to public Protected B sites.
  */
 
-/**
- * ProBAccessApplicationCustomizer -
- * Ensures that Protected B sites are only accessible to members or owners when public.
- */
-
 import { override } from '@microsoft/decorators';
 import { Log } from '@microsoft/sp-core-library';
 import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
 import { sp } from "@pnp/sp";
 import "@pnp/sp/webs";
-import "@pnp/sp/site-users/web";
-import "@pnp/sp/site-groups";
-import "@pnp/sp/security";
+import "@pnp/sp/site-users";
 import { setup as pnpSetup } from "@pnp/common";
-import { PermissionKind } from "@pnp/sp/security";
 
 // Initialize PnPjs
 pnpSetup({
@@ -47,7 +39,7 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       const siteUrl = window.location.href.toLowerCase();
       console.log('Site URL:', siteUrl);
 
-      // Check if the site is Protected B
+      // check if the site is Protected B
       const isProtectedB = siteUrl.includes("/teams/b");
       console.log('Is Protected B:', isProtectedB);
 
@@ -56,13 +48,13 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
-      // Skip checks for the app catalog
+      // skip checks for the app catalog
       if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
         console.log('App catalog page detected, skipping redirection...');
         return Promise.resolve();
       }
 
-      // Check the site's privacy setting
+      // check the site's privacy setting
       const siteProperties = await sp.site.get();
       const isPublic = siteProperties.Privacy !== "Private";
       console.log('Is Public:', isPublic);
@@ -72,42 +64,33 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
-      // Check if the user has read permissions
-      const hasAccess = await sp.web.currentUserHasPermissions(PermissionKind.ViewListItems);
-      console.log('Does User Have Access:', hasAccess);
+      // Get the current user's email address
+      const currentUser = await sp.web.currentUser.get();
+      const currentUserEmail = currentUser.Email.toLowerCase();
+      console.log('Current User Email:', currentUserEmail);
 
-      if (!hasAccess) {
-        // Retrieve the current user's email
-        const currentUser = await sp.web.currentUser.get();
-        const userEmail = currentUser.Email;
-        console.log('Current User Email:', userEmail);
+      // Get the list of site users
+      const siteUsers = await sp.web.siteUsers();
+      const userEmails = siteUsers.map(user => user.Email.toLowerCase());
+      console.log('Site Users Emails:', userEmails);
 
-        // Check if the user is in any of the site's groups
-        const groups = await sp.web.siteGroups();
-        const userGroups = await Promise.all(
-          groups.map(async group => {
-            const users = await sp.web.siteGroups.getById(group.Id).users();
-            return users.some(user => user.Email.toLowerCase() === userEmail.toLowerCase());
-          })
-        );
+      // Check if the current user's email exists in the site users list
+      const isUserInSite = userEmails.includes(currentUserEmail);
+      console.log('Is User in Site:', isUserInSite);
 
-        const isMemberOrOwner = userGroups.includes(true);
-        console.log('Is User a Member or Owner:', isMemberOrOwner);
-
-        // Redirect if the user is not a member or owner
-        if (!isMemberOrOwner) {
-          console.log('User is not a member or owner, redirecting...');
-          window.location.href = "https://devgcx.sharepoint.com";
-          return Promise.resolve();
-        }
+      // Redirect if the user is not in the site users list
+      if (!isUserInSite) {
+        console.log('User is not in the site users list, redirecting...');
+        window.location.href = "https://devgcx.sharepoint.com";
+        return Promise.resolve();
       }
 
     } catch (error) {
-      // Handle unexpected errors with redirection
+      // handle unexpected errors with redirection
       Log.error(LOG_SOURCE, error.message || error);
       console.error('Error:', error);
 
-      // Fallback redirection to the home page
+      // fallback redirection to the home page
       window.location.href = "https://devgcx.sharepoint.com";
       return Promise.resolve();
     }
