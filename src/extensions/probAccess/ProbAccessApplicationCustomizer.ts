@@ -96,7 +96,7 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
 
   // Helper function: Extracts community name from the URL
   private getCommunityNameFromUrl(url: string): string {
-    const match = url.match(/\/teams\/b\/([^\/]+)/); // Assumes community name comes after '/teams/b/'
+    const match = url.match(/\/teams\/b\/([^/]+)/); // Assumes community name comes after '/teams/b/'
     return match && match[1] ? match[1] : "DefaultCommunity"; // Fallback to DefaultCommunity if not found
   }
 }
