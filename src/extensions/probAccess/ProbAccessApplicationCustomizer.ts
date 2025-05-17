@@ -102,14 +102,17 @@
     
       // Helper function: Extracts community name from the URL
       private getCommunityNameFromUrl(url: string): string {
-        const match = url.match(/\/teams\/b\/([^/]+)/); // Assumes community name comes after '/teams/b/'
-        if (match && match[1]) {
-          const communityName = match[1].replace(/-/g, " "); // Replace dashes with spaces if necessary
-          console.log('Extracted Community Name:', communityName);
-          return communityName;
+        // Look for '/teams/b' in the URL and extract the part after it
+        const basePath = "/teams/b";
+        const baseIndex = url.indexOf(basePath);
+    
+        if (baseIndex !== -1) {
+            const communityName = url.substring(baseIndex + basePath.length); // Extract everything after '/teams/b'
+            console.log('Extracted Community Name:', communityName);
+            return communityName ? communityName.trim() : ""; // Trim spaces and return
         }
     
-        // If no match, log a warning and return an empty string
+        // If '/teams/b' is not found, log a warning and return empty string
         console.warn('Could not extract community name from URL:', url);
         return ""; // Return empty string to force redirection
       }
