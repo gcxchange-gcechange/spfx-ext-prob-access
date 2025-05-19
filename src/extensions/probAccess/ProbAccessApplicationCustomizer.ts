@@ -70,56 +70,12 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       const currentUserEmail = currentUser.Email ? currentUser.Email.toLowerCase() : '';
       console.log('Current user email:', currentUserEmail);
 
-      const siteResponse = await fetch(`${sp.web.toUrl()}/_api/site?$select=GroupId`, {
-        headers: { 'Accept': 'application/json;odata=verbose' }
-      });
-      const siteData = await siteResponse.json();
-      const groupId = siteData.d.GroupId;
-      if (!groupId || groupId === "00000000-0000-0000-0000-000000000000") {
-        console.log('No Microsoft 365 Group backing this site. Skipping further checks.');
-        return Promise.resolve();
-      }
-      console.log("GroupId for this community:", groupId);
-
-      const graphClient = await this.context.msGraphClientFactory.getClient("3");
-      // Get members (and owners, if you want, do a similar call to `/owners`)
-      const membersResponse = await graphClient
-        .api(`/groups/${groupId}/members`)
-        .version("v1.0")
-        .get();
-
-      // Define the IGraphUser interface
-      interface IGraphUser {
-        mail?: string;
-      }
-
-      // Build list of allowed emails
-      const allowedEmails: string[] = (membersResponse.value || [])
-        .map((user: IGraphUser) => user.mail?.toLowerCase())
-        .filter((mail: string | undefined): mail is string => !!mail);
-
-      // Also get owners and add their emails
-      const ownersResponse = await graphClient
-        .api(`/groups/${groupId}/owners`)
-        .version("v1.0")
-        .get();
-
-      const ownerEmails: string[] = (ownersResponse.value || [])
-        .map((user: any) => user.mail?.toLowerCase())
-        .filter((mail: string | undefined): mail is string => !!mail);
-
-      allowedEmails.push(...ownerEmails);
-
-      // Make sure emails are unique
-      const uniqueAllowedEmails = Array.from(new Set(allowedEmails));
-
-      console.log('Allowed emails for this community:', uniqueAllowedEmails);
-
-      if (!uniqueAllowedEmails.includes(currentUserEmail)) {
-        console.log('User is not in allowed group, redirecting...');
-        window.location.href = "https://devgcx.sharepoint.com";
-        return Promise.resolve();
-      }
+      // get all users in the site
+      const siteUsers = await sp.web.siteUsers();
+      const siteUserEmails = siteUsers.map(user => user.Email ? user.Email.toLowerCase() : '');
+      console.log('Site user emails:', siteUserEmails);
+      console.log('Current user is a member:', siteUserEmails.includes(currentUserEmail));
+      console.log('Current user is an owner:', siteUserEmails.includes(currentUserEmail) && currentUser.IsSiteAdmin);
 
     } catch (error) {
       // handle unexpected errors with redirection
