@@ -27,11 +27,13 @@ pnpSetup({
 
 const LOG_SOURCE: string = 'ProBAccessApplicationCustomizer';
 
+// Helper to normalize and compare names loosely
 function normalizeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
 function nameLooseMatch(userName: string, memberName: string): boolean {
+  // Accepts: "adi makkar" ~ "Adi Makkar (psp)" etc
   const nUser = normalizeName(userName);
   const nMember = normalizeName(memberName);
   return nMember.includes(nUser) || nUser.includes(nMember);
@@ -84,7 +86,7 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       console.log('Current user name:', currentUserName);
 
       // --- DOM Membership Check using MutationObserver ---
-      const checkMembership = () => {
+      const checkMembership = (): string[] => {
         const nodes = document.querySelectorAll('.ms-Persona-primaryText');
         const memberNames = Array.from(nodes).map(n => (n.textContent || '').trim()).filter(Boolean);
         console.log('Group member names:', memberNames);
@@ -92,13 +94,11 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       };
 
       const userInGroupPromise = new Promise<boolean>((resolve) => {
-        let timeout: number;
         const observer = new MutationObserver(() => {
           const memberNames = checkMembership();
           if (memberNames.length > 0) {
             const userInGroup = memberNames.some(member => nameLooseMatch(currentUserName, member));
             observer.disconnect();
-            window.clearTimeout(timeout);
             resolve(userInGroup);
           }
         });
@@ -110,12 +110,6 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
           observer.disconnect();
           resolve(memberNames.some(member => nameLooseMatch(currentUserName, member)));
         }
-
-        // Timeout after 5 seconds if list never appears
-        timeout = window.setTimeout(() => {
-          observer.disconnect();
-          resolve(false);
-        }, 5000);
       });
 
       const userInGroup = await userInGroupPromise;
