@@ -10,6 +10,7 @@
     Ensure the app catalog is never redirected.
     No redirection for new tabs or search bar accesses, except for unauthorized access to public Protected B sites.
  */
+
 import { override } from '@microsoft/decorators';
 import { Log } from '@microsoft/sp-core-library';
 import { BaseApplicationCustomizer } from '@microsoft/sp-application-base';
@@ -18,20 +19,25 @@ import "@pnp/sp/webs";
 import "@pnp/sp/site-users";
 import { setup as pnpSetup } from "@pnp/common";
 
-interface IGraphUser {
-  mail?: string;
-}
-
 pnpSetup({
   sp: {
-    baseUrl: "https://devgcx.sharepoint.com" // Update this link in Prod
+    baseUrl: "https://devgcx.sharepoint.com" // Update in Prod
   }
 });
 
 const LOG_SOURCE: string = 'ProBAccessApplicationCustomizer';
 
-export default class ProBAccessApplicationCustomizer extends BaseApplicationCustomizer<{}> {
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase();
+}
 
+function nameLooseMatch(userName: string, memberName: string): boolean {
+  const nUser = normalizeName(userName);
+  const nMember = normalizeName(memberName);
+  return nMember.includes(nUser) || nUser.includes(nMember);
+}
+
+export default class ProBAccessApplicationCustomizer extends BaseApplicationCustomizer<{}> {
   @override
   public async onInit(): Promise<void> {
     Log.info(LOG_SOURCE, `Initialized ProBAccessApplicationCustomizer`);
@@ -39,93 +45,61 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
 
     try {
       const siteUrl = window.location.href.toLowerCase();
-      console.log('Site URL:', siteUrl);
 
-      // check if the site is Protected B
+      // dheck if Protected B and not app catalog
       const isProtectedB = siteUrl.includes("/teams/b");
-      console.log('Is Protected B:', isProtectedB);
-
-      if (!isProtectedB) {
-        console.log('Not a Protected B site, skipping checks...');
+      if (!isProtectedB || siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
         return Promise.resolve();
       }
 
-      // skip checks for the app catalog
-      if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
-        console.log('App catalog page detected, skipping redirection...');
-        return Promise.resolve();
-      }
-
-      // check the site's privacy setting
+      // check privacy
       const siteProperties = await sp.site.get();
       const isPublic = siteProperties.Privacy !== "Private";
-      console.log('Is Public:', isPublic);
+      if (!isPublic) return Promise.resolve();
 
-      if (!isPublic) {
-        console.log('Site is private, no redirection required.');
-        return Promise.resolve();
-      }
-
-      // get current user email
+      // get current user name
       const currentUser = await sp.web.currentUser.get();
-      const currentUserEmail = currentUser.Email ? currentUser.Email.toLowerCase() : '';
-      console.log('Current user email:', currentUserEmail);
+      const userName = currentUser.Title ? currentUser.Title.trim() : '';
+      if (!userName) throw new Error('Unable to determine user name');
+      console.log('Current user name:', userName);
 
-      const groupIdResponse = await fetch(`${sp.web.toUrl()}/_api/site?$select=GroupId`, {
-        headers: { 'Accept': 'application/json;odata=verbose' }
-      });
-      const groupIdData = await groupIdResponse.json();
-      const groupId = groupIdData.d.GroupId;
-      if (!groupId || groupId === "00000000-0000-0000-0000-000000000000") {
-        console.log('No Microsoft 365 Group backing this site. Skipping further checks.');
-        return Promise.resolve();
-      }
-      console.log("GroupId for this community:", groupId);
+      // 4. DOM loaded (in case membership list is rendered after page load, use MutationObserver or retry a few times)
+      const getMemberNames = (): string[] => {
+        // select all elements containing member names in the group membership list
+        const nodes = document.querySelectorAll('.ms-Persona-primaryText');
+        return Array.from(nodes).map(n => (n.textContent || '').trim());
+      };
 
-      const graphClient = await this.context.msGraphClientFactory.getClient("3");
+      // wait for the names to appear (retry for up to 3 seconds)
+      const waitForMembers = (): Promise<string[]> =>
+        new Promise((resolve) => {
+          let tries = 0;
+          const maxTries = 30;
+          const interval = setInterval(() => {
+            const names = getMemberNames();
+            if (names.length > 0 || tries++ > maxTries) {
+              clearInterval(interval);
+              resolve(names);
+            }
+          }, 100);
+        });
 
-      // Get members
-      const membersResponse = await graphClient
-        .api(`/groups/${groupId}/members`)
-        .version("v1.0")
-        .get();
+      const memberNames = await waitForMembers();
+      console.log('Group member names:', memberNames);
 
-      const memberEmails: string[] = (membersResponse.value || [])
-        .map((user: IGraphUser) => user.mail?.toLowerCase())
-        .filter((mail: string | undefined): mail is string => !!mail);
-
-      // Get owners
-      const ownersResponse = await graphClient
-        .api(`/groups/${groupId}/owners`)
-        .version("v1.0")
-        .get();
-
-      const ownerEmails: string[] = (ownersResponse.value || [])
-        .map((user: IGraphUser) => user.mail?.toLowerCase())
-        .filter((mail: string | undefined): mail is string => !!mail);
-
-      // Combine and deduplicate
-      const allowedEmails = Array.from(new Set([...memberEmails, ...ownerEmails]));
-
-      console.log('Allowed emails for this community:', allowedEmails);
-
-      if (!allowedEmails.includes(currentUserEmail)) {
-        console.log('User is not in allowed group, redirecting...');
+      // match user name against member list
+      const userInGroup = memberNames.some(member => nameLooseMatch(userName, member));
+      if (!userInGroup) {
+        // user is NOT a member/owner, redirect
         window.location.href = "https://devgcx.sharepoint.com";
         return Promise.resolve();
       }
-
+      // user is authorized, continue
+      console.log('User has the necessary access, no redirection needed.');
     } catch (error) {
-      // handle unexpected errors with redirection
       Log.error(LOG_SOURCE, error.message || error);
-      console.error('Error:', error);
-
-      // fallback redirection to the home page
       window.location.href = "https://devgcx.sharepoint.com";
-      return Promise.resolve();
     }
-
-    console.log('User has the necessary access, no redirection needed.');
     return Promise.resolve();
   }
 }
