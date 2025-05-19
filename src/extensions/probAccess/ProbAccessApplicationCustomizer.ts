@@ -64,6 +64,49 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         return Promise.resolve();
       }
 
+      // get current user email
+      const currentUser = await sp.web.currentUser.get();
+      const currentUserEmail = currentUser.Email ? currentUser.Email.toLowerCase() : '';
+      console.log('Current user email:', currentUserEmail);
+
+      // site groups
+      const webUrl = sp.web.toUrl();
+      const groupsResponse = await fetch(`${webUrl}/_api/web/sitegroups`, {
+        headers: { 'Accept': 'application/json;odata=verbose' }
+      });
+      const groupsData = await groupsResponse.json();
+
+      // find "Owners" and "Members" groups for the site
+      const ownersGroup = groupsData.d.results.find((g: any) => g.Title.toLowerCase().includes('owners'));
+      const membersGroup = groupsData.d.results.find((g: any) => g.Title.toLowerCase().includes('members'));
+
+      // helper to fetch users in a group
+      const getGroupUsers = async (groupId: number): Promise<string[]> => {
+        const resp = await fetch(`${webUrl}/_api/web/sitegroups(${groupId})/users`, {
+          headers: { 'Accept': 'application/json;odata=verbose' }
+        });
+        const data = await resp.json();
+        return data.d.results.map((u: any) => u.Email?.toLowerCase()).filter((e: any) => !!e);
+      };
+
+      // get all emails in owners and members
+      let allowedEmails: string[] = [];
+      if (ownersGroup) {
+        allowedEmails = allowedEmails.concat(await getGroupUsers(ownersGroup.Id));
+      }
+      if (membersGroup) {
+        allowedEmails = allowedEmails.concat(await getGroupUsers(membersGroup.Id));
+      }
+      allowedEmails = Array.from(new Set(allowedEmails)); // unique
+
+      console.log('Allowed emails for this community:', allowedEmails);
+
+      if (!allowedEmails.includes(currentUserEmail)) {
+        console.log('User is not in allowed group, redirecting...');
+        window.location.href = "https://devgcx.sharepoint.com";
+        return Promise.resolve();
+      }
+      
     } catch (error) {
       // handle unexpected errors with redirection
       Log.error(LOG_SOURCE, error.message || error);
