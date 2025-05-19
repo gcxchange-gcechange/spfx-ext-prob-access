@@ -19,6 +19,7 @@ import "@pnp/sp/webs";
 import "@pnp/sp/site-users";
 import { setup as pnpSetup } from "@pnp/common";
 
+
 // Initialize PnPjs
 pnpSetup({
   sp: {
@@ -87,9 +88,14 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
         .version("v1.0")
         .get();
 
+      // Define the IGraphUser interface
+      interface IGraphUser {
+        mail?: string;
+      }
+
       // Build list of allowed emails
       const allowedEmails: string[] = (membersResponse.value || [])
-        .map((user: any) => user.mail?.toLowerCase())
+        .map((user: IGraphUser) => user.mail?.toLowerCase())
         .filter((mail: string | undefined): mail is string => !!mail);
 
       // Also get owners and add their emails
