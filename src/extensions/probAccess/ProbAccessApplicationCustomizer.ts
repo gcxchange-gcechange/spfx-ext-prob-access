@@ -21,7 +21,7 @@ import { setup as pnpSetup } from "@pnp/common";
 
 pnpSetup({
   sp: {
-    baseUrl: "https://devgcx.sharepoint.com" // Update in Prod
+    baseUrl: "https://devgcx.sharepoint.com" // Update this link in Prod
   }
 });
 
@@ -38,6 +38,7 @@ function nameLooseMatch(userName: string, memberName: string): boolean {
 }
 
 export default class ProBAccessApplicationCustomizer extends BaseApplicationCustomizer<{}> {
+
   @override
   public async onInit(): Promise<void> {
     Log.info(LOG_SOURCE, `Initialized ProBAccessApplicationCustomizer`);
@@ -45,61 +46,96 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
 
     try {
       const siteUrl = window.location.href.toLowerCase();
+      console.log('Site URL:', siteUrl);
 
-      // dheck if Protected B and not app catalog
+      // check if the site is Protected B
       const isProtectedB = siteUrl.includes("/teams/b");
-      if (!isProtectedB || siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
+      console.log('Is Protected B:', isProtectedB);
+
+      if (!isProtectedB) {
+        console.log('Not a Protected B site, skipping checks...');
         return Promise.resolve();
       }
 
-      // check privacy
+      // skip checks for the app catalog
+      if (siteUrl.includes('/sites/appcatalog/_layouts/15/tenantAppCatalog.aspx/manageApps')) {
+        console.log('App catalog page detected, skipping redirection...');
+        return Promise.resolve();
+      }
+
+      // check the site's privacy setting
       const siteProperties = await sp.site.get();
       const isPublic = siteProperties.Privacy !== "Private";
-      if (!isPublic) return Promise.resolve();
+      console.log('Is Public:', isPublic);
 
-      // get current user name
+      if (!isPublic) {
+        console.log('Site is private, no redirection required.');
+        return Promise.resolve();
+      }
+
+      // get current user info (including display name)
       const currentUser = await sp.web.currentUser.get();
-      const userName = currentUser.Title ? currentUser.Title.trim() : '';
-      if (!userName) throw new Error('Unable to determine user name');
-      console.log('Current user name:', userName);
+      const currentUserEmail = currentUser.Email ? currentUser.Email.toLowerCase() : '';
+      const currentUserName = currentUser.Title ? currentUser.Title.trim() : '';
+      if (!currentUserName) {
+        throw new Error('Unable to determine user name');
+      }
+      console.log('Current user email:', currentUserEmail);
+      console.log('Current user name:', currentUserName);
 
-      // 4. DOM loaded (in case membership list is rendered after page load, use MutationObserver or retry a few times)
-      const getMemberNames = (): string[] => {
-        // select all elements containing member names in the group membership list
+      // --- DOM Membership Check using MutationObserver ---
+      const checkMembership = () => {
         const nodes = document.querySelectorAll('.ms-Persona-primaryText');
-        return Array.from(nodes).map(n => (n.textContent || '').trim());
+        const memberNames = Array.from(nodes).map(n => (n.textContent || '').trim()).filter(Boolean);
+        console.log('Group member names:', memberNames);
+        return memberNames;
       };
 
-      // wait for the names to appear (retry for up to 3 seconds)
-      const waitForMembers = (): Promise<string[]> =>
-        new Promise((resolve) => {
-          let tries = 0;
-          const maxTries = 30;
-          const interval = setInterval(() => {
-            const names = getMemberNames();
-            if (names.length > 0 || tries++ > maxTries) {
-              clearInterval(interval);
-              resolve(names);
-            }
-          }, 100);
+      const userInGroupPromise = new Promise<boolean>((resolve) => {
+        let timeout: number;
+        const observer = new MutationObserver(() => {
+          const memberNames = checkMembership();
+          if (memberNames.length > 0) {
+            const userInGroup = memberNames.some(member => nameLooseMatch(currentUserName, member));
+            observer.disconnect();
+            window.clearTimeout(timeout);
+            resolve(userInGroup);
+          }
         });
+        observer.observe(document.body, { childList: true, subtree: true });
 
-      const memberNames = await waitForMembers();
-      console.log('Group member names:', memberNames);
+        // Also run immediately in case the list is already present
+        const memberNames = checkMembership();
+        if (memberNames.length > 0) {
+          observer.disconnect();
+          resolve(memberNames.some(member => nameLooseMatch(currentUserName, member)));
+        }
 
-      // match user name against member list
-      const userInGroup = memberNames.some(member => nameLooseMatch(userName, member));
+        // Timeout after 5 seconds if list never appears
+        timeout = window.setTimeout(() => {
+          observer.disconnect();
+          resolve(false);
+        }, 5000);
+      });
+
+      const userInGroup = await userInGroupPromise;
       if (!userInGroup) {
-        // user is NOT a member/owner, redirect
+        // User is NOT a member/owner, redirect
         window.location.href = "https://devgcx.sharepoint.com";
         return Promise.resolve();
       }
-      // user is authorized, continue
+      // User is authorized, continue
       console.log('User has the necessary access, no redirection needed.');
+      return Promise.resolve();
+
     } catch (error) {
+      // handle unexpected errors with redirection
       Log.error(LOG_SOURCE, error.message || error);
+      console.error('Error:', error);
+
+      // fallback redirection to the home page
       window.location.href = "https://devgcx.sharepoint.com";
+      return Promise.resolve();
     }
-    return Promise.resolve();
   }
 }
