@@ -50,7 +50,7 @@
       },
       {
         "resource": "Microsoft Graph",
-        "scope": "RoleManagement.Read.Directory"
+        "scope": "GroupMember.Read.All"
       }
     ]
   },
