@@ -27,18 +27,6 @@ pnpSetup({
 
 const LOG_SOURCE: string = 'ProBAccessApplicationCustomizer';
 
-// Helper to normalize and compare names loosely
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase();
-}
-
-function nameLooseMatch(userName: string, memberName: string): boolean {
-  // Accepts: "adi makkar" ~ "Adi Makkar (psp)" etc
-  const nUser = normalizeName(userName);
-  const nMember = normalizeName(memberName);
-  return nMember.includes(nUser) || nUser.includes(nMember);
-}
-
 export default class ProBAccessApplicationCustomizer extends BaseApplicationCustomizer<{}> {
 
   @override
@@ -85,39 +73,6 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
       console.log('Current user email:', currentUserEmail);
       console.log('Current user name:', currentUserName);
 
-      // --- DOM Membership Check using MutationObserver ---
-      const checkMembership = (): string[] => {
-        const nodes = document.querySelectorAll('.ms-Persona-primaryText');
-        const memberNames = Array.from(nodes).map(n => (n.textContent || '').trim()).filter(Boolean);
-        console.log('Group member names:', memberNames);
-        return memberNames;
-      };
-
-      const userInGroupPromise = new Promise<boolean>((resolve) => {
-        const observer = new MutationObserver(() => {
-          const memberNames = checkMembership();
-          if (memberNames.length > 0) {
-            const userInGroup = memberNames.some(member => nameLooseMatch(currentUserName, member));
-            observer.disconnect();
-            resolve(userInGroup);
-          }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-
-        // Also run immediately in case the list is already present
-        const memberNames = checkMembership();
-        if (memberNames.length > 0) {
-          observer.disconnect();
-          resolve(memberNames.some(member => nameLooseMatch(currentUserName, member)));
-        }
-      });
-
-      const userInGroup = await userInGroupPromise;
-      if (!userInGroup) {
-        // User is NOT a member/owner, redirect
-        window.location.href = "https://devgcx.sharepoint.com";
-        return Promise.resolve();
-      }
       // User is authorized, continue
       console.log('User has the necessary access, no redirection needed.');
       return Promise.resolve();
