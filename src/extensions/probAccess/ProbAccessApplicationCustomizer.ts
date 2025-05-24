@@ -168,14 +168,17 @@ export default class ProBAccessApplicationCustomizer extends BaseApplicationCust
 
     } catch (error: unknown) {
       // handle unexpected errors with redirection
-      if (typeof error === "object" && error !== null && "message" in error) {
-        // @ts-ignore
-        Log.error(LOG_SOURCE, (error as { message: string }).message || error);
-        // @ts-ignore
-        console.error('Error:', (error as { message: string }).message || error);
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof (error as { message?: unknown }).message === "string"
+      ) {
+        Log.error(LOG_SOURCE, new Error((error as { message: string }).message));
+        console.error("Error:", (error as { message: string }).message);
       } else {
         Log.error(LOG_SOURCE, new Error(String(error)));
-        console.error('Error:', error);
+        console.error("Error:", error);
       }
       // fallback redirection to the home page
       window.location.href = "https://devgcx.sharepoint.com";
